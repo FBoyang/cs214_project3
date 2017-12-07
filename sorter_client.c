@@ -13,7 +13,6 @@ sem_t sem_name;
 char id[256];
 LinkList* pidCounter=NULL;
 
-
 void CallServer(FILE *fptr,char*node){// with finish signal
     int sockfd;
     if (pool>0) {
