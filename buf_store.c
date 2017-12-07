@@ -45,6 +45,7 @@ int get_id(struct bufarg *bufarray)
 	}
 	enlarge(bufarray);
 	bufarray[i].isFree = 0;
+	bufarray[i].table = NULL:
 	return i;
 }
 

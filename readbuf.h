@@ -19,7 +19,7 @@ struct bufarg {
 void initialize_csv(struct csv *table);
 void readbuf(char *buffer, struct bufarg node);
 void append_csv(struct csv *table, char ***new_entries, int num_new);
-void print_csv(struct csv *table, char *buffer, int length);
+void print_csv(struct csv *table, char *buffer);
 void free_csv(struct csv *table);
 
 #endif

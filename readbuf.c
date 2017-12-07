@@ -49,7 +49,7 @@ void initialize_csv(struct csv *table)
 
 
 //csvread would take a buffer,a matrix as an argument
-void readbuf(char *buffer, struct bufarg node)
+void readbuf(char *buffer, struct bufarg* node)
 {
 	
 	char ***matrix;
@@ -106,6 +106,9 @@ void readbuf(char *buffer, struct bufarg node)
 		row++;
 	}
 	free(buffer);
+	if(node -> table == NULL)	
+		node -> table = calloc(1, sizeof(struct csv));
+	
 	append_csv(node->table, matrix, row);
 	free(matrix);
 	return NULL;
@@ -123,7 +126,7 @@ void append_csv(struct csv *table, char ***new_entries, int num_new)
 	pthread_mutex_unlock(&table->mutex);
 }
 
-void print_csv(struct csv *table, char *buffer, int length)
+void print_csv(struct csv *table, char *buffer)
 {
 	int i, j;
 	buffer = malloc(length);

@@ -2,6 +2,10 @@
 #define _BUF_STORE_H
 
 #include "readbuf.h"
+struct sarg{
+	struct bufarg *id_list;
+};	
+
 void enlarge(struct bufarg*);
 void init_array(struct bufarg*);
 int get_id(struct bufarg*);

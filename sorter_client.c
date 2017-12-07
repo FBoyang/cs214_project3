@@ -1,6 +1,6 @@
 #include "sorter_client.h"
 
-char *sourtedBy = NULL;
+char *sortedBy = NULL;
 char * inppath=NULL;
 char *output = NULL;
 /*for socket*/
@@ -29,14 +29,20 @@ void CallServer(FILE *fptr,char*node){// with finish signal
     }
     if(strcmp(node,"QUIT_SERVER")==0){
         //        here is write, tell server to stop
-        int n = write(sockfd,node , 256);
+        int n = write(sockfd, node, 256);
         
         if(n <= 0){
             perror("write");
         }
     }else if(strcmp(node,"Get_Id")==0){
         printf("get in get id\n\n\n\n\n\n");
-        int n = write(sockfd,node , 256);
+	char send[128];
+	int field_index = get_field_index(sortedBy);
+	if(field_index == -1){
+		return;
+	}
+	sprintf(send, "Get_Id-_-%d", field_index);
+        int n = write(sockfd, send , 128);
         if(n < 0){
             perror("write");
         }
@@ -163,7 +169,7 @@ int main(int argc, char * const argv[]) {
         switch (c)
         {   case 'c':
                 cflag = 1;
-                sourtedBy = optarg;
+                sortedBy = optarg;
                 break;
             case 'd':
                 dflag = 1;

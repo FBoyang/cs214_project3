@@ -34,7 +34,7 @@ void serial_mergesort(int low, int high, int field, char ***matrix)
 
 */
 
-void serial_mergesort(int low, int high, int field, char ***matrix)
+void mergesort(int low, int high, int field, char ***matrix)
 {
 	int i;
 	int s_index[high -low];
@@ -64,47 +64,6 @@ void serial_mergesort(int low, int high, int field, char ***matrix)
 
 
 
-void *mergesort(void *arg)
-{
-	pthread_t lthread;
-
-	struct mergesort_args *margs = (struct mergesort_args *)arg;
-	if ((margs -> high - margs -> low) <= BOUNDARY){
-		serial_mergesort(margs -> low, margs -> high, margs -> field_index, margs -> matrix);
-		return NULL;
-	}
-	struct mergesort_args low_arg, high_arg;
-	//printf("*******%d*********\n", arg);
-	low_arg.low = margs -> low;
-	low_arg.high = (margs -> low + margs -> high)/2;
-	low_arg.field_index = margs -> field_index;
-	low_arg.matrix = margs -> matrix;	
-	//low_arg.tids = margs -> tids;
-	//printf("low index is %d, high index is %d\n", low_arg.low, low_arg.high);
-	
-	if(pthread_create(&lthread, NULL, mergesort, &low_arg) != 0){
-		//printf("fail to do mutithread\n");
-		serial_mergesort(low_arg.low, low_arg.high, low_arg.field_index, low_arg.matrix);
-	}	
-	//pthread_mutex_lock(
-	high_arg.field_index = margs -> field_index;
-	high_arg.low = (margs -> low + margs -> high)/2 ;
-	high_arg.high = margs -> high;
-	high_arg.matrix = margs -> matrix;
-	//high_arg.tids = margs -> tids;
-	//pthread_create(&hthread, NULL, mergesort, &high_arg);
-	mergesort(&high_arg);
-	//append_tid_list(margs -> tids, &hthread, 1);
-	if(lthread != -1){
-		//global_counter ++;
-		//append_tid_list(margs -> tids, &lthread, 1); 
-		pthread_join(lthread, NULL);
-		//printf("%ld, ", lthread);
-	}
-	//pthread_join(hthread, NULL);
-	merge(low_arg.low, high_arg.low, high_arg.high, low_arg.field_index, low_arg.matrix);
-	return NULL;	
-}
 
 
 void merge(int low, int mid, int high, int field_index, char ***matrix)

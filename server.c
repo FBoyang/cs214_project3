@@ -69,30 +69,30 @@ void *service(void *args)
     int client_socket = args -> socketfd;
     char send_id[4];
     int size;
+    int sess_id;
+    int field = 0;
     /*step 5: receive data */
     //use read system call to read data
   
-    
+    struct bufarg *buf_list = args -> id_list;     
     //create a buffer list and get an available id 
-    int sess_id = get_id(buf_list);
-    strcpy(send_id, itoa(sess_id));
-
-        
+          
     char rebeg[128];
     int a = read(client_socket, rebeg, 128);
-    if (strcmp(rebeg,"QUIT_SERVER")==0) {
-        //here is a signal to quit
+  
 
-        printf("now program end\n\n\n\n\n\n");
-		
-
-    }else if(strcmp(rebeg,"Get_Id")==0){
+     if(strstr(rebeg,"Get_Id")!=NULL){
         //here should write to me
         printf("now sending the session id\n\n\n\n\n\n");
       //send session id to client
+        strtok(rebeg, "-_-");
+	char *field_index = strtok(NULL, "-_-");
+	field = atoi(field_index); 
+        sess_id = get_id(buf_list);
+        strcpy(send_id, itoa(sess_id));
         write(client_socket, send_id, 4); 
       }
-      else{
+      else if(strcmp(rebeg, "sort") == 0){
         //else, do normal works
         int a;
 	/*
@@ -102,10 +102,12 @@ void *service(void *args)
 	*/
         char *recv_buf = malloc(10);
         char * op;
-        char*location=strtok_r(rebeg,"-_-",&op);
-        char*length=strtok_r(NULL,"-_-",&op);
+        char *id=strtok_r(rebeg,"-_-",&op);
+        char *length=strtok_r(NULL,"-_-",&op);
         size=atoi(length);
-        printf("now reciving%d,path%s",size,location);
+        sess_id = atoi(id);
+	buf_list[sess_id].size += size;	
+        printf("now reciving%d,path%s", size, id);
         recv_buf = realloc(recv_buf, 1024);
         a = 0;
         do{
@@ -115,26 +117,30 @@ void *service(void *args)
             memset(recv_buf, 0, 1024);
         }while(a < size - 1024);
         a = read (client_socket, recv_buf, size - a);
-	//now         
-
+	//now append the current buffer into the corresponding matrix
+	readbuf(recv_buf, &buf_list[sess_id]);       
+	
 
         printf("buffer size is %d\n", size);
         //printf("last 10 char of buffer is %s\n", recv_buf[size - 10]);
         printf("[r] Reading from  client: %s\n", recv_buf);
-        fclose(fptr);
     }
+    else{ //Quit server
     /*STEP 6: send data */
     // prepare your sending data
     // use write system call to send data
-  
+    char ***matrix = buf_list[sess_id];
+    int high = (buf_list[sess_id].table) -> num_rows; 
+    mergesort(0, high, field, matrix);
     write(client_socket, send_buf, 256);
-    
+    int t_size = buf_list[sess_id].size;
+    char *sort_buffer = malloc(t_size + 10);
+    print_csv(buf_list[sess_id].table, sort_buffer;
+    write(client_socket, sort_buffer, t_size + 10);
     printf("[s] Data sent \n");
     /*step 7: close socket */
     close(client_socket);
     
-    release_tid(index);
-    num_of_thread --;
 }
 
 
@@ -186,8 +192,6 @@ int main(int argc, char **argv)
     
     printf("Waiting for connections ...\n");
     struct bufarg *buf_list = NULL;
-    struct sarg *arg = malloc(sizeof(struct sarg*));
-    arg -> id_list = buf_list;
 
     //we use a while loop to keep waiting for the connections
     while(status)
@@ -195,7 +199,8 @@ int main(int argc, char **argv)
         /*STEP 4: create connnection/accept connection request */
         //use client socket to accept client request
         client_sock = accept(server_sock, NULL, NULL);
-        
+       	struct sarg *arg = malloc(sizeof*(struct sarg*));
+	arg -> id_list = buf_list; 
         if(client_sock < 0){
             perror("accept");
             close(server_sock);
@@ -204,12 +209,11 @@ int main(int argc, char **argv)
         
         
         printf("[+] Connect to client %d\n", client_sock);
-        int i = 0;
 	int tid;
 	arg -> socketfd = client_sock;
         //tid_pool[i].socketfd  = client_sock;
         //service((void *)i);
-        
+   
         pthread_create(&tid, NULL, service, (void*)arg);
        // num_of_thread ++;
         pthread_detach(tid);
