@@ -29,19 +29,49 @@ void CallServer(FILE *fptr,char*node){// with finish signal
     }
     if(strcmp(node,"QUIT_SERVER")==0){
         //        here is write, tell server to stop
-        int n = write(sockfd, node, 256);
-        
+        int n = write(sockfd,node , sizeof(char)*256);
         if(n <= 0){
             perror("write");
         }
+        char rebeg[256];
+        n = read(sockfd, rebeg, sizeof(char)*256);
+        if(n <= 0){
+            perror("read");
+        }
+        int size=atoi(rebeg);
+        char* recv_buf = (char*)malloc(sizeof(char)* 1024);
+        FILE *fptr;
+        //remove("output.csv");
+        int length=strlen(output)+24+strlen(sourtedBy);
+        char fileN[length];
+        fileN[length-1]='\0';
+        strcpy(fileN,output);
+        strcat(fileN,"/");
+        strcat(fileN,"AllFiles-sorted-<");
+        strcat(fileN,sourtedBy);
+        strcat(fileN,">.csv");
+        fptr = fopen(fileN,"w+");
+        int a = 0;
+        do{
+            a += read(sockfd, recv_buf, sizeof(char)*1024);
+            fwrite(recv_buf, 1, sizeof(char)*1024, fptr);
+            fflush(fptr);
+            memset(recv_buf, 0, sizeof(char)*1024);
+        }while(a < size - 1024);
+        a = read (sockfd, recv_buf, sizeof(char)*(size - a));
+        fwrite(recv_buf, 1, a, fptr);
+        fclose(fptr);
     }else if(strcmp(node,"Get_Id")==0){
         printf("get in get id\n\n\n\n\n\n");
 	char send[128];
-	int field_index = get_field_index(sortedBy);
-	if(field_index == -1){
-		return;
-	}
-	sprintf(send, "Get_Id-_-%d", field_index);
+        //reconsider this part
+//    int field_index = get_field_index(sortedBy);
+//    if(field_index == -1){
+//        return;
+//    }
+        //till here
+//    sprintf(send, "Get_Id-_-%d", field_index);
+        sprintf(send, "Get_Id-_-%s", sortedBy);
         int n = write(sockfd, send , 128);
         if(n < 0){
             perror("write");
@@ -60,7 +90,6 @@ void CallServer(FILE *fptr,char*node){// with finish signal
         char send[265];
         sprintf(send,"%s-_-%d",id,len);
         int n = write(sockfd,send , 256);
-        
         if(n <= 0){
             perror("write");
         }
@@ -80,7 +109,6 @@ void CallServer(FILE *fptr,char*node){// with finish signal
         if (n <= 0){
             perror("write");
         }
-        
         free(buffer);
         char rbuffer[256];
         n = read(sockfd, rbuffer, 256);
