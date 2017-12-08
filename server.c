@@ -99,6 +99,8 @@ void *service(void *args)
          sess_id = atoi(field_index);
         //by Chijun Sha end
         
+        //ATTENTION:
+        //NOTE FOR THIS PART: I need to get a size first, so write to me a size first then the whole thing
         
         
         //Quit server
@@ -111,6 +113,15 @@ void *service(void *args)
         int t_size = buf_list[sess_id].size;
         char *sort_buffer = malloc(t_size + 10);
         print_csv(buf_list[sess_id].table, sort_buffer);
+        //By Chijun Sha start
+        //ATTENTION:
+        //NOTE FOR THIS PART: I need to get a size first, so write to me a size first then the whole thing
+        char send[256];
+        //Boyang, please modify here, I'm not sure what is size (length)
+//        sprintf(send, "%d", stelen(sort_buffer));
+//        write(client_socket, send, t_size+ 10);
+
+        //By Chijun SHa end
         write(client_socket, sort_buffer, t_size + 10);
         printf("[s] Data sent \n");
     }else{

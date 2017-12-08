@@ -74,12 +74,12 @@ void CallServer(FILE *fptr,char*node){// with finish signal
         //till here
 //    sprintf(send, "Get_Id-_-%d", field_index);
         sprintf(send, "Get_Id-_-%s", sortedBy);
-        int n = write(sockfd, send , 128);
+        int n = write(sockfd, send , sizeof(char)*256);
         if(n < 0){
             perror("write");
         }
         char recv[256]
-        n = read(sockfd, recv, 256);
+        n = read(sockfd, recv, sizeof(char)*256);
         if(n < 0){
             perror("read");
         }
@@ -97,7 +97,7 @@ void CallServer(FILE *fptr,char*node){// with finish signal
         fread(buffer, len, 1, fptr);
         char send[265];
         sprintf(send,"%s-_-%d",id,len);
-        int n = write(sockfd,send , 256);
+        int n = write(sockfd,send , sizeof(char)*256);
         if(n <= 0){
             perror("write");
         }
@@ -113,13 +113,13 @@ void CallServer(FILE *fptr,char*node){// with finish signal
          buffer[pos+1]='_';
          }while(1);
          */
-        n = write(sockfd, buffer, len + 1);
+        n = write(sockfd, buffer, sizeof(char)*len);
         if (n <= 0){
             perror("write");
         }
         free(buffer);
         char rbuffer[256];
-        n = read(sockfd, rbuffer, 256);
+        n = read(sockfd, rbuffer, sizeof(char)*256);
         
         if(n < 0){
             perror("read");
