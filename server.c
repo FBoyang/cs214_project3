@@ -51,14 +51,16 @@ void *service(void *args)
     struct bufarg *buf_list = arg -> id_list;
     //create a buffer list and get an available id
     
-    char rebeg[128];
-    int a = read(client_socket, rebeg, 128);
+    
+    //by Chijun Sha start
+    char rebeg[256];
+    int a = read(client_socket, rebeg, 256);
     if (a <= 0){
         perror("read");
     }
     char *readrec=strtok_r(rebeg,"-_-",&op);
     
-    
+    //by CHijun Sha END
     
     
     if(strcmp(readrec,"Get_Id")==0){
