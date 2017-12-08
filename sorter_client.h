@@ -17,6 +17,7 @@
 #include <pthread.h>
 #include <semaphore.h>
 #include <sys/types.h>
+#include "readbuf.c"
 //typedef struct Node{
 //    char** col;
 //    int Golcolomn;

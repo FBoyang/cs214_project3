@@ -4,6 +4,7 @@
 #include "readbuf.h"
 struct sarg{
 	struct bufarg *id_list;
+	int socketfd;
 };	
 
 void enlarge(struct bufarg*);

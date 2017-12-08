@@ -56,7 +56,6 @@ void readbuf(char *buffer, struct bufarg* node)
 	int row;
 	int row_capacity;
 	char *line, *linep;
-	size_t n;
 	char *str;
 	char *strex;
 	int i;
@@ -70,11 +69,10 @@ void readbuf(char *buffer, struct bufarg* node)
 
 	line = strtok(buffer, "\r\n");
 	
-	n = 0;	
 	if (line == NULL || strcmp(line, header)) {
 		//fputs("invalid header\n", stderr);
 		free(buffer);
-		return NULL;
+		return;
 	}
 	row_capacity = 64;
 	matrix = malloc(row_capacity * sizeof(*matrix));
@@ -111,7 +109,7 @@ void readbuf(char *buffer, struct bufarg* node)
 	
 	append_csv(node->table, matrix, row);
 	free(matrix);
-	return NULL;
+	return;
 }
 
 void append_csv(struct csv *table, char ***new_entries, int num_new)
@@ -129,6 +127,7 @@ void append_csv(struct csv *table, char ***new_entries, int num_new)
 void print_csv(struct csv *table, char *buffer)
 {
 	int i, j;
+	int length = table -> num_rows;
 	buffer = malloc(length);
 	sprintf(buffer, "%s", header);
 	for (i = 0; i < table->num_rows; i++) {
@@ -144,7 +143,6 @@ void print_csv(struct csv *table, char *buffer)
 		}
 		sprintf(buffer, "\r\n");
 	}
-	free(filename);
 }
 
 void free_csv(struct csv *table)

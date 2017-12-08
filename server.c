@@ -4,7 +4,9 @@
 #include <unistd.h>
 #include <string.h>
 #include "buf_store.h"
-#include "readbuf.c"
+#include "readbuf.h"
+#include "mergesort.h"
+
 /*socket stuff
  */
 #include <sys/socket.h>
@@ -24,41 +26,14 @@
 
 int status = 1;
 int num_of_thread = 0;
-/*
-typedef struct tid_type
-{
-    pthread_t tid;
-    int isFree;
-    int socketfd;
-}tid_type;
 
-tid_type tid_pool[MAX_NUM_THREAD];
-
-void init_tid_pool()
-{	
-    int i;
-    for (i = 0; i < MAX_NUM_THREAD; i++){
-        tid_pool[i].isFree = 1;
-        tid_pool[i].socketfd = -1;
-    }
+char* itoa(int val, int base){
+	static char buf[32] = {0};
+	int i = 30;
+	for(; val && i; --i, val /= base)
+		buf[i] = "0123456789abcdef"[val % base];
+	return &buf[i+1];
 }
-
-int get_tid()
-{
-    int i;
-    for (i = 0; i < MAX_NUM_THREAD; i++){
-        if(tid_pool[i].isFree == 1){
-            return i;
-        }
-    }
-    return -1;
-}
-
-void release_tid(int index)
-{
-    tid_pool[index].isFree = 1;
-}
-*/
 
 void *service(void *args)
 {
@@ -66,20 +41,21 @@ void *service(void *args)
     //to talk to the client
     //define two buffers, receive and send
     struct sarg *arg = (struct sarg*) args;
-    int client_socket = args -> socketfd;
-    char send_id[4];
+    int client_socket = arg -> socketfd;
     int size;
-    int sess_id;
+    int sess_id = 0;
     int field = 0;
     /*step 5: receive data */
     //use read system call to read data
   
-    struct bufarg *buf_list = args -> id_list;     
+    struct bufarg *buf_list = arg -> id_list;     
     //create a buffer list and get an available id 
           
     char rebeg[128];
     int a = read(client_socket, rebeg, 128);
-  
+    if (a <= 0){
+	perror("read");
+    } 
 
      if(strstr(rebeg,"Get_Id")!=NULL){
         //here should write to me
@@ -89,8 +65,13 @@ void *service(void *args)
 	char *field_index = strtok(NULL, "-_-");
 	field = atoi(field_index); 
         sess_id = get_id(buf_list);
-        strcpy(send_id, itoa(sess_id));
-        write(client_socket, send_id, 4); 
+	if(buf_list[sess_id].table == NULL)
+		buf_list[sess_id].table = malloc(sizeof(struct csv)); 
+	initialize_csv(buf_list[sess_id].table);
+       	char *send_id = itoa(sess_id, 10);
+        if(write(client_socket, send_id, 4) <= 0){
+		perror("write"); 
+	}
       }
       else if(strcmp(rebeg, "sort") == 0){
         //else, do normal works
@@ -112,8 +93,6 @@ void *service(void *args)
         a = 0;
         do{
             a += read(client_socket, recv_buf, 1024);
-            fwrite(recv_buf, 1, 1024, fptr);
-            fflush(fptr);
             memset(recv_buf, 0, 1024);
         }while(a < size - 1024);
         a = read (client_socket, recv_buf, size - a);
@@ -129,20 +108,19 @@ void *service(void *args)
     /*STEP 6: send data */
     // prepare your sending data
     // use write system call to send data
-    char ***matrix = buf_list[sess_id];
+    char ***matrix = buf_list[sess_id].table -> matrix;
     int high = (buf_list[sess_id].table) -> num_rows; 
     mergesort(0, high, field, matrix);
-    write(client_socket, send_buf, 256);
     int t_size = buf_list[sess_id].size;
     char *sort_buffer = malloc(t_size + 10);
-    print_csv(buf_list[sess_id].table, sort_buffer;
+    print_csv(buf_list[sess_id].table, sort_buffer);
     write(client_socket, sort_buffer, t_size + 10);
     printf("[s] Data sent \n");
     /*step 7: close socket */
     close(client_socket);
-    
+    }
+    return NULL;
 }
-
 
 
 int main(int argc, char **argv)
@@ -199,7 +177,7 @@ int main(int argc, char **argv)
         /*STEP 4: create connnection/accept connection request */
         //use client socket to accept client request
         client_sock = accept(server_sock, NULL, NULL);
-       	struct sarg *arg = malloc(sizeof*(struct sarg*));
+       	struct sarg *arg = malloc(sizeof(struct sarg*));
 	arg -> id_list = buf_list; 
         if(client_sock < 0){
             perror("accept");
@@ -209,7 +187,7 @@ int main(int argc, char **argv)
         
         
         printf("[+] Connect to client %d\n", client_sock);
-	int tid;
+	pthread_t tid;
 	arg -> socketfd = client_sock;
         //tid_pool[i].socketfd  = client_sock;
         //service((void *)i);
@@ -220,5 +198,6 @@ int main(int argc, char **argv)
         
         
     }
+    return 0;
 }	
 

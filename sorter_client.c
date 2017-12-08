@@ -154,6 +154,7 @@ void* FindDir(char * dirtory){
             }
         }
     }
+	return NULL;
 }
 
 
@@ -162,17 +163,14 @@ int main(int argc, char * const argv[]) {
     char input_path[1024];
     int c=0;
     char* output_path=NULL;
-    int dflag=0,cflag=0,oflag=0;
     getcwd( input_path, 1024);
     
     while((c = getopt (argc, argv, "c: d: o: p: h: s:")) != -1){
         switch (c)
         {   case 'c':
-                cflag = 1;
                 sortedBy = optarg;
                 break;
             case 'd':
-                dflag = 1;
                 if (optarg == NULL){
                     fprintf(stderr, "no start path\n");
                     exit(1);
@@ -180,7 +178,6 @@ int main(int argc, char * const argv[]) {
                 strcpy(input_path, optarg);
                 break;
             case 'o':
-                oflag = 1;
                 if (optarg == NULL){
                     fprintf(stderr, "no output path\n");
                     exit(1);
@@ -188,7 +185,6 @@ int main(int argc, char * const argv[]) {
                 output_path = optarg;
                 break;
             case 'p'://has to be integer?
-                oflag = 1;
                 if (optarg == NULL){
                     fprintf(stderr, "no output path\n");
                     exit(1);
@@ -196,7 +192,6 @@ int main(int argc, char * const argv[]) {
                 port = atoi(optarg);
                 break;
             case 's':
-                oflag = 1;
                 if (optarg == NULL){
                     fprintf(stderr, "no output path\n");
                     exit(1);
@@ -204,7 +199,6 @@ int main(int argc, char * const argv[]) {
                 pool = atoi(optarg);
                 break;
             case 'h':
-                oflag = 1;
                 if (optarg == NULL){
                     fprintf(stderr, "no output path\n");
                     exit(1);

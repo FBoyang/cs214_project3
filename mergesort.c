@@ -5,8 +5,7 @@
 #include <pthread.h>
 #include <ctype.h>
 #include <stdbool.h>
-#include "readcsv.h"
-#include "tid_list.h"
+#include "readbuf.h"
 #include "mergesort.h"
 
 #define BOUNDARY 2048
