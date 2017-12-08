@@ -29,6 +29,7 @@ void CallServer(FILE *fptr,char*node){// with finish signal
     }
     if(strcmp(node,"QUIT_SERVER")==0){
         //        here is write, tell server to stop
+char send[256];
         sprintf(send, "QUIT_SERVER-_-%s", id);
 
         int n = write(sockfd,node , sizeof(char)*256);
@@ -44,13 +45,13 @@ void CallServer(FILE *fptr,char*node){// with finish signal
         char* recv_buf = (char*)malloc(sizeof(char)* 1024);
         FILE *fptr;
         //remove("output.csv");
-        int length=strlen(output)+24+strlen(sourtedBy);
+        int length=strlen(output)+24+strlen(sortedBy);
         char fileN[length];
         fileN[length-1]='\0';
         strcpy(fileN,output);
         strcat(fileN,"/");
         strcat(fileN,"AllFiles-sorted-<");
-        strcat(fileN,sourtedBy);
+        strcat(fileN,sortedBy);
         strcat(fileN,">.csv");
         fptr = fopen(fileN,"w+");
         int a = 0;
@@ -65,7 +66,7 @@ void CallServer(FILE *fptr,char*node){// with finish signal
         fclose(fptr);
     }else if(strcmp(node,"Get_Id")==0){
         printf("get in get id\n\n\n\n\n\n");
-	char send[128];
+	char send[256];
         //reconsider this part
 //    int field_index = get_field_index(sortedBy);
 //    if(field_index == -1){
@@ -78,7 +79,7 @@ void CallServer(FILE *fptr,char*node){// with finish signal
         if(n < 0){
             perror("write");
         }
-        char recv[256]
+        char recv[256];
         n = read(sockfd, recv, sizeof(char)*256);
         if(n < 0){
             perror("read");
