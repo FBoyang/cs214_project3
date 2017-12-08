@@ -29,6 +29,8 @@ void CallServer(FILE *fptr,char*node){// with finish signal
     }
     if(strcmp(node,"QUIT_SERVER")==0){
         //        here is write, tell server to stop
+        sprintf(send, "QUIT_SERVER-_-%s", id);
+
         int n = write(sockfd,node , sizeof(char)*256);
         if(n <= 0){
             perror("write");
@@ -76,9 +78,15 @@ void CallServer(FILE *fptr,char*node){// with finish signal
         if(n < 0){
             perror("write");
         }
-        n = read(sockfd, id, 256);
+        char recv[256]
+        n = read(sockfd, recv, 256);
         if(n < 0){
             perror("read");
+        }
+        if (strncmp(recv,"0",1)==0) {
+            exit(1);
+        }else{
+            strcpy(id,recv+1);
         }
         printf("now the id if|%s|",id);
     }else{
