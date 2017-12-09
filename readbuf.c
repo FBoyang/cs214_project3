@@ -62,7 +62,7 @@ void readbuf(char *buffer, struct csv *table, int len)
 	char *str;
 	char *strex;
 	int i;
-	
+	//printf("file is %s\n", buffer);	
 	
 /*
 	if ((infile = fopen(args->file, "r")) == NULL) {
@@ -135,6 +135,7 @@ char *print_csv(struct bufarg buf)
 {
 	int i, j;
 	mergesort(0, buf.table -> num_rows, buf.field_num, buf.table -> matrix);
+	//printf("num_rows is %d\n", buf.table -> num_rows);
 	struct csv *table = buf.table;
 	int length = buf.table -> t_length;
 	char *buffer = malloc(length+1);
@@ -161,6 +162,7 @@ char *print_csv(struct bufarg buf)
 		sprintf(ptr, "\r\n");
 		ptr += strlen(ptr);
 	}
+	//printf("buffer is %s\n", buffer);
 	return buffer;
 	
 }

@@ -29,10 +29,10 @@ void CallServer(FILE *fptr,char*node){// with finish signal
     }
     if(strcmp(node,"QUIT_SERVER")==0){
         //        here is write, tell server to stop
-char send[256];
+	char send[256];
         sprintf(send, "QUIT_SERVER-_-%s", id);
 
-        int n = write(sockfd,node , sizeof(char)*256);
+        int n = write(sockfd, send, sizeof(char)*256);
         if(n <= 0){
             perror("write");
         }
@@ -258,7 +258,7 @@ int main(int argc, char * const argv[]) {
         perror("path error");
         exit(2);
     }
-    if (port<=0) {
+    if (port<0) {
         perror("port error");
         exit(2);
     }
@@ -293,6 +293,7 @@ int main(int argc, char * const argv[]) {
         LinkList*pidCount=pidCounter->next;
         pidCounter=pidCount;
     }
+    //printf("quit\n");
     CallServer(NULL,"QUIT_SERVER");
     //end
     return 0;

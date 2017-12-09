@@ -9,7 +9,7 @@
 #include "buf_store.h"
 #include "readbuf.h"
 
-const int BUF_LEN = 256;
+const int BUF_LEN = 1024;
 const int HDR_LEN = 128;
 const int PAD_LEN = 128;
 const int BACKLOG = 16;
@@ -29,6 +29,7 @@ int main(int argc, char **argv)
     struct service_args *sa;
     pthread_t tid;
     port = 0;
+    fprintf(stdout, "Received connections from: ");
     while ((c = getopt(argc, argv, "p:")) != -1) {
         switch (c) {
         case 'p':
@@ -85,6 +86,8 @@ void *service(void *arg)
     read(fd, buffer, HDR_LEN);
     if (strncmp(buffer, "QUIT_SERVER", 11) == 0) {
         if (sscanf(buffer, "QUIT_SERVER-_-%d", &sid) == 1 && sid < (*ba)->id_size && (*ba)[sid].isFree == 0) {
+	    printf("quit server \n");
+	    printf("session id is %d, num row is %d\n", sid,(*ba[sid]).table -> num_rows);
             file = print_csv(*ba[sid]);
             len = strlen(file);
             sprintf(buffer, "length %ld", strlen(file));
@@ -96,22 +99,28 @@ void *service(void *arg)
             free(file);
         }
     } else if (strncmp(buffer, "Get_Id", 6) == 0) {
-        if (sscanf(buffer, "Get_Id-_-%s", field_name) == 1) {
-            sid = get_id(field_name, ba);
-            sprintf(buffer, "%d", sid);
+        if (sscanf(buffer, "Get_Id-_-%s", field_name) == 1) {   
+	    sid = get_id(field_name, ba);
+            sprintf(buffer, "1%d", sid);
+	    
+	    printf("can get id\n");
             write(fd, buffer, HDR_LEN);
         }
     } else if (sscanf(buffer, "%d-_-%d", &sid, &len) == 2) {
+	printf("read data\n");
         read(fd, buffer, PAD_LEN);
         file = malloc((len + 1) * sizeof(*file));
-        for (fptr = file, i = 0; i <= len - BUF_LEN; fptr += BUF_LEN, i += BUF_LEN) {
-            read(fd, buffer, BUF_LEN);
+	int a = 0;
+        for (fptr = file, i = 0; i <= len - BUF_LEN; fptr += a, i += a) {
+            a = read(fd, buffer, BUF_LEN);
             strncpy(fptr, buffer, BUF_LEN);
         }
         read(fd, buffer, len - i);
         strncpy(fptr, buffer, len - i);
-        fptr[len - i] = '\0';
+        file[len - 1] = 0;
+	//printf("file is %s\n", file);
         append_file(file, len, sid, *ba);
+	printf("row num is %d\n", *ba[sid] -> table -> num_rows);
     }
     close(fd);
     free(arg);
