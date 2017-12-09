@@ -39,17 +39,20 @@ char *field_list[NUM_COLS] = {
 	"movie_facebook_likes",
 };
 
-void initialize_csv(struct csv *table)
+struct csv *initialize_csv()
 {
+	struct csv *table = malloc(sizeof(struct csv));
 	table->matrix = NULL;
 	pthread_mutex_init(&table->mutex, NULL);
 	table->num_rows = 0;
 	table->row_capacity = 0;
+	table -> t_length = 0;
+	return table;
 }
 
 
 //csvread would take a buffer,a matrix as an argument
-void readbuf(char *buffer, struct bufarg* node)
+void readbuf(char *buffer, struct csv *table, int len)
 {
 	
 	char ***matrix;
@@ -59,6 +62,7 @@ void readbuf(char *buffer, struct bufarg* node)
 	char *str;
 	char *strex;
 	int i;
+	
 	
 /*
 	if ((infile = fopen(args->file, "r")) == NULL) {
@@ -78,10 +82,6 @@ void readbuf(char *buffer, struct bufarg* node)
 	matrix = malloc(row_capacity * sizeof(*matrix));
 	row = 0;
 	while ((line = strtok(NULL, "\r\n")) != NULL) {
-		/*
-		if (strlen(line) >= 2 && strcmp(line + strlen(line) - 2, "\r\n") == 0)
-			line[strlen(line) - 2] = '\0';
-		*/
 		if (row >= row_capacity) {
 			row_capacity *= 2;
 			matrix = realloc(matrix, row_capacity * sizeof(*matrix));
@@ -104,17 +104,25 @@ void readbuf(char *buffer, struct bufarg* node)
 		row++;
 	}
 	free(buffer);
-	if(node -> table == NULL)	
-		node -> table = calloc(1, sizeof(struct csv));
-	
-	append_csv(node->table, matrix, row);
+	if(table == NULL)	
+		table = calloc(1, sizeof(struct csv));
+	append_csv(table, matrix, row, len);
 	free(matrix);
 	return;
 }
 
-void append_csv(struct csv *table, char ***new_entries, int num_new)
+
+
+void append_file(char *file, int len, int sid, struct bufarg *ba)
+{
+	struct csv append_table = readbuf(file, ba[sid].table, len);
+	free_csv(&append_table);
+}
+
+void append_csv(struct csv *table, char ***new_entries, int num_new, int len)
 {
 	pthread_mutex_lock(&table->mutex);
+	table ->t_length += len;
 	if (table->num_rows + num_new > table->row_capacity) {
 		table->row_capacity = 2 * (table->num_rows + num_new);
 		table->matrix = realloc(table->matrix, table->row_capacity * sizeof(*table->matrix));
@@ -124,24 +132,33 @@ void append_csv(struct csv *table, char ***new_entries, int num_new)
 	pthread_mutex_unlock(&table->mutex);
 }
 
-void print_csv(struct csv *table, char *buffer)
+char *print_csv(struct bufarg)
 {
 	int i, j;
-	int length = table -> num_rows;
-	buffer = malloc(length);
+	int length = table -> t_length;
+	buffer = malloc(length+1);
+	char *ptr;
 	sprintf(buffer, "%s", header);
+	ptr = buffer + strlen(buffer);
 	for (i = 0; i < table->num_rows; i++) {
 		for (j = 0; j < NUM_COLS; j++) {
 			if (table->matrix[i][j]) {
-				if (index(table->matrix[i][j], ','))
-					sprintf(buffer, "\"%s\"", table->matrix[i][j]);
-				else
-					sprintf(buffer, table->matrix[i][j]);
+				if (index(table->matrix[i][j], ',')){
+					sprintf(ptr, "\"%s\"", table->matrix[i][j]);
+					ptr += strlen(ptr);
+				}
+				else{
+					sprintf(ptr, table->matrix[i][j]);
+					ptr += strlen(ptr);
+				}
+			}		
+			if (j < NUM_COLS - 1){
+				sprintf(ptr, ",");
+				ptr += strlen(ptr);
 			}
-			if (j < NUM_COLS - 1)
-				sprintf(buffer, ",");
 		}
-		sprintf(buffer, "\r\n");
+		sprintf(ptr, "\r\n");
+		ptr += strlen(ptr);
 	}
 }
 
@@ -156,6 +173,8 @@ void free_csv(struct csv *table)
 	free(table->matrix);
 	pthread_mutex_destroy(&table->mutex);
 }
+
+
 
 int get_field_index(char *field_name)
 {

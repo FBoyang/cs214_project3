@@ -6,20 +6,14 @@ struct csv {
 	pthread_mutex_t mutex;
 	int num_rows;
 	int row_capacity;
+	int t_length;
 };
 
-struct bufarg {
-	struct csv *table;
- 	int sess_id;
-	char *buffer;
-	int size;
-	int isFree;
-};
-
-void initialize_csv(struct csv *table);
-void readbuf(char *buffer, struct bufarg* node);
+struct csv* initialize_csv();
+struct csv readbuf(char *buffer);
+void append_file(char *file, int len, int sid, struct bufarg* ba);
 void append_csv(struct csv *table, char ***new_entries, int num_new);
-void print_csv(struct csv *table, char *buffer);
+char *print_csv(struct bufarg,  int length);
 void free_csv(struct csv *table);
 
 #endif
