@@ -10,11 +10,11 @@
 
 #define BOUNDARY 2048
 
-inline int compare(char *a, char *b);
-inline int lexcmp(char *a, int alen, char *b, int blen);
-inline int charcmp(char a, char b);
-inline int strbegin(char *str);
-inline int strend(char *str);
+int compare(char *a, char *b);
+int lexcmp(char *a, int alen, char *b, int blen);
+int charcmp(char a, char b);
+int strbegin(char *str);
+int strend(char *str);
 void merge(int low, int mid, int high, int field_index, char ***matrix);
 
 /*
@@ -99,7 +99,7 @@ void merge(int low, int mid, int high, int field_index, char ***matrix)
 
 
 
-inline int compare(char *a, char *b)
+int compare(char *a, char *b)
 {
     int ret;
     double ad, bd;
@@ -150,7 +150,7 @@ inline int compare(char *a, char *b)
     return ret;
 }
 
-inline int lexcmp(char *a, int alen, char *b, int blen)
+int lexcmp(char *a, int alen, char *b, int blen)
 {
     int ret;
     int i, j;
@@ -185,7 +185,7 @@ inline int lexcmp(char *a, int alen, char *b, int blen)
     return ret;
 }
 
-inline int charcmp(char a, char b)
+int charcmp(char a, char b)
 {
     int ret;
     if (isalpha(a) && isalpha(b)) {
@@ -213,7 +213,7 @@ inline int charcmp(char a, char b)
     return ret;
 }
 
-inline int strbegin(char *str)
+int strbegin(char *str)
 {
     int i, len, begin;
     if (str)
@@ -231,7 +231,7 @@ inline int strbegin(char *str)
     return begin;
 }
 
-inline int strend(char *str)
+int strend(char *str)
 {
     int i, len, end;
     if (str)
