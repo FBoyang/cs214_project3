@@ -135,6 +135,7 @@ void append_csv(struct csv *table, char ***new_entries, int num_new, int len)
 char *print_csv(struct bufarg)
 {
 	int i, j;
+	mergesort(0, bufarg.num_rows, bufarg.field_num, bufarg.matrix);
 	int length = table -> t_length;
 	buffer = malloc(length+1);
 	char *ptr;

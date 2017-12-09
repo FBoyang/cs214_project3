@@ -12,10 +12,11 @@ struct bufarg{
 	int sess_id;
 	int id_size;
 	int isFree;
+	int *field_num;
 };
 
 void enlarge(struct bufarg*);
 void init_array(struct bufarg*);
-int get_id(char *field_name, struct bufarg*);
+int get_id(char *, struct bufarg**);
 void free_id(struct bufarg*, int);
 #endif 

@@ -29,7 +29,7 @@ struct bufarg *init_array(struct bufarg *bufarray)
 }
 
 //return an available session id
-int get_id(struct bufarg **bufarray)
+int get_id(char *filed_name, struct bufarg **bufarray)
 {
 
 	pthread_mutex_lock(&locker);
@@ -38,12 +38,15 @@ int get_id(struct bufarg **bufarray)
 	for(i = 0; i < size; i++){
 		if(*bufarray[i].isFree == 1){
 			*bufarray[i].isFree = 0;
+			*bufarray[i].table = initialize_csv();
+			*bufarray[i].field_index = get_field_index(field_num);
 			return i;
 		}
 	}
 	enlarge(bufarray);
 	*bufarray[i].isFree = 0;
 	*bufarray[i].table = initialize_csv();
+	*bufarray[i].field_index = get_field_index(field_num);
 	pthread_mutex_unlock(&locker);
 	return i;
 }
