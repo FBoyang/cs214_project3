@@ -79,8 +79,8 @@ void *service(void *arg)
     ba = args->ba;
     read(fd, buffer, HDR_LEN);
     if (strncmp(buffer, "QUIT_SERVER", 11) == 0) {
-        if (sscanf(buffer, "QUIT_SERVER-_-%d", &sid) == 1) {
-            file = get_results(sid, ba);
+        if (sscanf(buffer, "QUIT_SERVER-_-%d", &sid) == 1 && sid < ba[0].size && ba[sid].isFree == 0) {
+            file = print_csv(ba[sid]);
             len = strlen(file);
             sprintf(buffer, "length %d", strlen(file));
             write(fd, buffer, HDR_LEN);
