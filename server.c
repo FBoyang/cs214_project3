@@ -3,6 +3,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <pthread.h>
+#include "buf_store.h"
 
 #define BUF_LEN 256
 #define HDR_LEN 128
@@ -11,7 +12,7 @@
 
 struct service_args {
     int fd;
-    struct data_structure *ds;
+    struct bufarg *ba;
 };
 
 void *service(void *arg);
@@ -20,7 +21,7 @@ int main(int argc, char **argv)
 {
     int c, port, sock, fd;
     struct sockaddr_in addr;
-    struct data_structure ds;
+    struct bufarg *ba;
     struct service_args *sa;
     port = 0;
     while ((c = getopt(argc, argv, "p:")) != -1) {
@@ -49,7 +50,7 @@ int main(int argc, char **argv)
         fprintf(stderr, "failed to listen on socket %d with backlog %d\n", sock, BACKLOG);
         return 1;
     }
-    initialize_data_structure(&ds);
+    ba = init_array();
     while (1) {
         if ((fd = accept(sock, NULL, NULL)) == -1) {
             fprintf(stderr, "failed to accept connection on socket %d\n", sock);
@@ -57,7 +58,7 @@ int main(int argc, char **argv)
         }
         sa = malloc(sizeof(*sa));
         sa->fd = fd;
-        sa->ds = &ds;
+        sa->ba = &ba;
         if (pthread_create(NULL, NULL, &service, sa)) {
             fputs("failed to create thread\n", stderr);
             free(sa);
@@ -69,17 +70,17 @@ int main(int argc, char **argv)
 
 void *service(void *arg)
 {
-    struct service_args args;
-    struct data_structure ds;
-    int fd, sid, len, i, field_index;
-    char buffer[BUF_LEN], *file, *fptr;
+    struct service_args *args;
+    struct bufarg *ba;
+    int fd, sid, len, i;
+    char buffer[BUF_LEN], field_name[BUF_LEN], *file, *fptr;
     args = (struct service_args *) arg;
     fd = args->fd;
-    ds = args->ds;
+    ba = args->ba;
     read(fd, buffer, HDR_LEN);
     if (strncmp(buffer, "QUIT_SERVER", 11) == 0) {
         if (sscanf(buffer, "QUIT_SERVER-_-%d", &sid) == 1) {
-            file = get_results(sid, ds);
+            file = get_results(sid, ba);
             len = strlen(file);
             sprintf(buffer, "length %d", strlen(file));
             write(fd, buffer, HDR_LEN);
@@ -87,10 +88,11 @@ void *service(void *arg)
                 strncpy(buffer, fptr, BUF_LEN);
                 write(fd, buffer, BUF_LEN);
             }
+            free(file);
         }
     } else if (strncmp(buffer, "Get_Id", 6) == 0) {
-        if (sscanf(buffer, "Get_Id-_-%d", &field_index) == 1) {
-            sid = new_session(field_index, ds);
+        if (sscanf(buffer, "Get_Id-_-%s", &field_name) == 1) {
+            sid = get_id(field_name, &ba);
             sprintf(buffer, "%d", sid);
             write(fd, buffer, HDR_LEN);
         }
@@ -104,7 +106,7 @@ void *service(void *arg)
         read(fb, buffer, len - i);
         strncpy(fptr, buffer, len - i);
         fptr[len - i] = '\0';
-        append_file(file, sid, ds);
+        append_file(file, len, sid, ba);
     }
     close(fd);
     free(arg);
