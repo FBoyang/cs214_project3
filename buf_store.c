@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "buf_store.h"
+#include "readbuf.h"
 
 pthread_mutex_t locker = PTHREAD_MUTEX_INITIALIZER; 
 
