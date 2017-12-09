@@ -6,7 +6,7 @@
 #include "mergesort.h"
 #define NUM_COLS 28
 
-char *header = "color,director_name,num_critic_for_reviews,duration,director_facebook_likes,actor_3_facebook_likes,actor_2_name,actor_1_facebook_likes,gross,genres,actor_1_name,movie_title,num_voted_users,cast_total_facebook_likes,actor_3_name,facenumber_in_poster,plot_keywords,movie_imdb_link,num_user_for_reviews,language,country,content_rating,budget,title_year,actor_2_facebook_likes,imdb_score,aspect_ratio,movie_facebook_likes\r\n";
+char *header = "color,director_name,num_critic_for_reviews,duration,director_facebook_likes,actor_3_facebook_likes,actor_2_name,actor_1_facebook_likes,gross,genres,actor_1_name,movie_title,num_voted_users,cast_total_facebook_likes,actor_3_name,facenumber_in_poster,plot_keywords,movie_imdb_link,num_user_for_reviews,language,country,content_rating,budget,title_year,actor_2_facebook_likes,imdb_score,aspect_ratio,movie_facebook_likes";
 
 char *field_list[NUM_COLS] = {
 	"color",
@@ -62,19 +62,12 @@ void readbuf(char *buffer, struct csv *table, int len)
 	char *str;
 	char *strex;
 	int i;
-	//printf("file is %s\n", buffer);	
-	
-/*
-	if ((infile = fopen(args->file, "r")) == NULL) {
-		fprintf(stderr, "failed to open file \"%s\" for reading\n", args->file);
-		return NULL;
-	}
-	*/
-
+	//printf("first line is %.*s\n", 10, buffer);
 	line = strtok(buffer, "\r\n");
-	
+	//printf("header %s\n", line);
 	if (line == NULL || strcmp(line, header)) {
-		//fputs("invalid header\n", stderr);
+		printf("header length %d, line length is %d\n", strlen(header), strlen(line));
+		fputs("invalid header\n", stderr);
 		free(buffer);
 		return;
 	}
@@ -133,11 +126,13 @@ void append_csv(struct csv *table, char ***new_entries, int num_new, int len)
 
 char *print_csv(struct bufarg buf)
 {
+
 	int i, j;
-	mergesort(0, buf.table -> num_rows, buf.field_num, buf.table -> matrix);
-	//printf("num_rows is %d\n", buf.table -> num_rows);
+	printf("mergesort arguments: 0, %d\n", buf.field_num);	
+	mergesort(0, (buf).table -> num_rows, buf.field_num, (buf).table -> matrix);
 	struct csv *table = buf.table;
 	int length = buf.table -> t_length;
+	printf("length after sorting is %d\n", length);
 	char *buffer = malloc(length+1);
 	char *ptr;
 	sprintf(buffer, "%s", header);

@@ -121,11 +121,12 @@ void CallServer(FILE *fptr,char*node){// with finish signal
         free(buffer);
         char rbuffer[256];
         n = read(sockfd, rbuffer, sizeof(char)*256);
-        
+       	printf("rbuffer is %s\n", rbuffer); 
         if(n < 0){
             perror("read");
         }
-        printf("from server: %s\n", rbuffer);
+        //printf("from server: %s\n", rbuffer);
+        while (strcmp(rbuffer, "done") == 0);
         close(sockfd);
     }
     if (pool>0) {

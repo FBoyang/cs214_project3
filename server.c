@@ -9,7 +9,7 @@
 #include "buf_store.h"
 #include "readbuf.h"
 
-const int BUF_LEN = 1024;
+const int BUF_LEN = 256;
 const int HDR_LEN = 128;
 const int PAD_LEN = 128;
 const int BACKLOG = 16;
@@ -87,9 +87,11 @@ void *service(void *arg)
     if (strncmp(buffer, "QUIT_SERVER", 11) == 0) {
         if (sscanf(buffer, "QUIT_SERVER-_-%d", &sid) == 1 && sid < (*ba)->id_size && (*ba)[sid].isFree == 0) {
 	    printf("quit server \n");
-	    printf("session id is %d, num row is %d\n", sid,(*ba[sid]).table -> num_rows);
+	    printf("session id is %d, num row is %d, word length is %d\n", sid,(*ba[sid]).table -> num_rows, (*ba[sid]).table -> t_length);
             file = print_csv(*ba[sid]);
             len = strlen(file);
+	    //printf("file is %s\n", file);
+	    //printf("length is %d\n", len);
             sprintf(buffer, "length %ld", strlen(file));
             write(fd, buffer, HDR_LEN);
             for (fptr = file, i = 0; i < len; fptr += BUF_LEN, i += BUF_LEN) {
@@ -115,12 +117,17 @@ void *service(void *arg)
             a = read(fd, buffer, BUF_LEN);
             strncpy(fptr, buffer, BUF_LEN);
         }
+	printf("len is %d\n", len);
         read(fd, buffer, len - i);
         strncpy(fptr, buffer, len - i);
         file[len - 1] = 0;
-	//printf("file is %s\n", file);
+	printf("file is %.*s\n", 10,file);
         append_file(file, len, sid, *ba);
-	printf("row num is %d\n", *ba[sid] -> table -> num_rows);
+	a = write(fd, "done", 4);
+	if ( a < 0){
+		perror("write");
+	}	
+	//printf("row num is %d\n", *ba[sid] -> table -> num_rows);
     }
     close(fd);
     free(arg);
