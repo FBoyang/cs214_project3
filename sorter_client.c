@@ -41,7 +41,9 @@ void CallServer(FILE *fptr,char*node){// with finish signal
         if(n <= 0){
             perror("read");
         }
+	printf("rebeg is %s\n", rebeg);
         int size=atoi(rebeg);
+	printf("receive size is %d\n", size);
         char* recv_buf = (char*)malloc(sizeof(char)* 1024);
         FILE *fptr;
         //remove("output.csv");
@@ -58,12 +60,14 @@ void CallServer(FILE *fptr,char*node){// with finish signal
         do{
             a += read(sockfd, recv_buf, sizeof(char)*1024);
             fwrite(recv_buf, 1, sizeof(char)*1024, fptr);
-            fflush(fptr);
+            //fflush(fptr);
+	    //printf("receive buffer %s\n", recv_buf);
             memset(recv_buf, 0, sizeof(char)*1024);
         }while(a < size - 1024);
         a = read (sockfd, recv_buf, sizeof(char)*(size - a));
         fwrite(recv_buf, 1, a, fptr);
         fclose(fptr);
+	close(sockfd);
     }else if(strcmp(node,"Get_Id")==0){
         printf("get in get id\n\n\n\n\n\n");
 	char send[256];
@@ -120,14 +124,13 @@ void CallServer(FILE *fptr,char*node){// with finish signal
         }
         free(buffer);
         char rbuffer[256];
-        n = read(sockfd, rbuffer, sizeof(char)*256);
+        n = read(sockfd, rbuffer, sizeof(char)*4);
        	printf("rbuffer is %s\n", rbuffer); 
         if(n < 0){
             perror("read");
         }
         //printf("from server: %s\n", rbuffer);
         while (strcmp(rbuffer, "done") == 0);
-        close(sockfd);
     }
     if (pool>0) {
         sem_post(&sem_name);

@@ -89,15 +89,24 @@ void *service(void *arg)
 	    printf("quit server \n");
 	    printf("session id is %d, num row is %d, word length is %d\n", sid,(*ba[sid]).table -> num_rows, (*ba[sid]).table -> t_length);
             file = print_csv(*ba[sid]);
+	    if (file = NULL){
+		return NULL;
+	    }
             len = strlen(file);
 	    //printf("file is %s\n", file);
-	    //printf("length is %d\n", len);
-            sprintf(buffer, "length %ld", strlen(file));
+	    //printf("file length is %d\n", len);
+            sprintf(buffer, "%ld", strlen(file));
             write(fd, buffer, HDR_LEN);
-            for (fptr = file, i = 0; i < len; fptr += BUF_LEN, i += BUF_LEN) {
+	    write(fd, file, strlen(file));
+	     
+/*
+            for (fptr = file, i = 0; i < len - BUF_LEN; fptr += a, i += a) {
                 strncpy(buffer, fptr, BUF_LEN);
-                write(fd, buffer, BUF_LEN);
+		printf("current buffer is %s\n", buffer);	
+                a =  write(fd, buffer, BUF_LEN);
             }
+
+*/	    
             free(file);
         }
     } else if (strncmp(buffer, "Get_Id", 6) == 0) {

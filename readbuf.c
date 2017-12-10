@@ -97,6 +97,8 @@ void readbuf(char *buffer, struct csv *table, int len)
 		row++;
 	}
 	free(buffer);
+	if(row == 0)
+		return;
 	if(table == NULL)	
 		table = calloc(1, sizeof(struct csv));
 	append_csv(table, matrix, row, len);
@@ -128,24 +130,30 @@ char *print_csv(struct bufarg buf)
 {
 
 	int i, j;
-	printf("mergesort arguments: 0, %d\n", buf.field_num);	
+	//printf("mergesort arguments 1: 0, %d\n", buf.field_num);
+	//printf("mergesort arguments 2: %d\n", buf.table -> num_rows);
+	if(buf.table == NULL)
+		return NULL;
+	smatrix = malloc(sizeof(char **) * (buf.table -> num_rows));	
 	mergesort(0, (buf).table -> num_rows, buf.field_num, (buf).table -> matrix);
 	struct csv *table = buf.table;
+	
 	int length = buf.table -> t_length;
 	printf("length after sorting is %d\n", length);
 	char *buffer = malloc(length+1);
 	char *ptr;
-	sprintf(buffer, "%s", header);
+	sprintf(buffer, "%s\r\n", header);
 	ptr = buffer + strlen(buffer);
 	for (i = 0; i < table->num_rows; i++) {
 		for (j = 0; j < NUM_COLS; j++) {
-			if (table->matrix[i][j]) {
-				if (index(table->matrix[i][j], ',')){
-					sprintf(ptr, "\"%s\"", table->matrix[i][j]);
+			if (smatrix[i][j]) {
+				if (index(smatrix[i][j], ',')){
+					//printf("smatrix[%d][%d] is %s\n", i, j, smatrix[i][j]);
+					sprintf(ptr, "\"%s\"", smatrix[i][j]);
 					ptr += strlen(ptr);
 				}
 				else{
-					sprintf(ptr, table->matrix[i][j]);
+					sprintf(ptr, smatrix[i][j]);
 					ptr += strlen(ptr);
 				}
 			}		
