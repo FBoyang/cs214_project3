@@ -1,16 +1,22 @@
 #include <stdlib.h>
+#include <string.h>
 #include <pthread.h>
 #include "binary_tree.h"
 
+struct csv *search_and_lock(struct binary_tree *bt, unsigned long target);
+struct csv *delete_and_lock(struct binary_tree *bt, unsigned long target);
 int insert(struct binary_tree *bt, unsigned long target);
 struct binary_tree_node *search(struct binary_tree *bt, unsigned long target);
-struct binary_tree_node *delete(struct binary_tree *bt, unsigned long target);
-struct binary_tree_node *rebalance(struct binary_tree *bt, struct binary_tree_node *ptr);
+struct csv *delete(struct binary_tree *bt, unsigned long target);
+void rebalance(struct binary_tree *bt, struct binary_tree_node *ptr);
 struct binary_tree_node *rotate_right(struct binary_tree_node *ptr);
 struct binary_tree_node *rotate_left(struct binary_tree_node *ptr);
-void recursive_free_node(binary_tree_node *ptr);
+void recursive_free_node(struct binary_tree_node *ptr);
+int unbalanced(unsigned long w1, unsigned long w2);
+int double_rotate(unsigned long w1, unsigned long w2);
+unsigned long get_weight(struct binary_tree_node *ptr);
 
-struct binary_tree initialize_binary_tree()
+struct binary_tree *initialize_binary_tree()
 {
 	struct binary_tree *bt;
 	bt = malloc(sizeof(*bt));
@@ -30,24 +36,26 @@ unsigned long new_session(struct binary_tree *bt)
 	return sid;
 }
 
-struct csv *search_and_lock(struct binary_tree *bt, unsigned long target)
+void append_file(struct binary_tree *bt, char *new_file, unsigned long sid)
 {
-	struct binary_tree_node *ptr;
-	pthread_mutex_lock(&bt->mutex);
-	ptr = search(bt, target);
-	pthread_mutex_lock(&ptr->value->mutex);
-	pthread_mutex_unlock(&bt->mutex);
-	return ptr->value;
+	struct file_node *fn;
+	struct csv *table;
+	fn = read_csv(new_file);
+	table = search_and_lock(bt, sid);
+	append_csv(table, fn, strlen(new_file));
+	pthread_mutex_unlock(&table->mutex);
 }
 
-struct csv *delete_and_lock(struct binary_tree *bt, unsigned long target)
+char *get_output(struct binary_tree *bt, unsigned long sid)
 {
-	struct csv *ret;
-	pthread_mutex_lock(&bt->mutex);
-	ret = delete(bt, target);
-	pthread_mutex_lock(&ret->mutex);
-	pthread_mutex_unlock(&bt->mutex);
-	return ret;
+	struct csv *table;
+	struct file_node *fn;
+	char *output;
+	table = delete_and_lock(bt, sid);
+	fn = mergesort(table);
+	output = print_csv(fn);
+	free_csv(table);
+	return output;
 }
 
 void free_binary_tree(struct binary_tree *bt)
@@ -89,10 +97,30 @@ int insert(struct binary_tree *bt, unsigned long target)
 	return ret;
 }
 
+struct csv *search_and_lock(struct binary_tree *bt, unsigned long target)
+{
+	struct binary_tree_node *ptr;
+	pthread_mutex_lock(&bt->mutex);
+	ptr = search(bt, target);
+	pthread_mutex_lock(&ptr->value->mutex);
+	pthread_mutex_unlock(&bt->mutex);
+	return ptr->value;
+}
+
+struct csv *delete_and_lock(struct binary_tree *bt, unsigned long target)
+{
+	struct csv *ret;
+	pthread_mutex_lock(&bt->mutex);
+	ret = delete(bt, target);
+	pthread_mutex_lock(&ret->mutex);
+	pthread_mutex_unlock(&bt->mutex);
+	return ret;
+}
+
 struct binary_tree_node *search(struct binary_tree *bt, unsigned long target)
 {
 	struct binary_tree_node *ptr;
-	ptr = root;
+	ptr = bt->root;
 	while (ptr && target != ptr->key) {
 		if (target < ptr->key)
 			ptr = ptr->left;
@@ -151,20 +179,71 @@ struct csv *delete(struct binary_tree *bt, unsigned long target)
 	return ret;
 }
 
-struct binary_tree_node *rebalance(struct binary_tree *bt, struct binary_tree_node *ptr)
+void rebalance(struct binary_tree *bt, struct binary_tree_node *ptr)
 {
-	struct binary_tree_node *big;
+	struct binary_tree_node *child;
 	for (; ptr != bt->root; ptr = ptr->parent) {
-		if (unbalanced(ptr->left->weight, ptr->right->weight)) {
-			if (double_rotate(ptr->left->right->weight, ptr->left->left->weight))
+		if (unbalanced(get_weight(ptr->left), get_weight(ptr->right))) {
+			if (double_rotate(get_weight(ptr->left->right), get_weight(ptr->left->left)))
 				ptr->left = rotate_left(ptr->left);
 			ptr = rotate_right(ptr);
-		} else if (unbalanced(ptr->right->weight, ptr->left->weight)) {
-			if (double_rotate(ptr->right->left->weight, ptr->right->right->weight))
+		} else if (unbalanced(get_weight(ptr->right), get_weight(ptr->left))) {
+			if (double_rotate(get_weight(ptr->right->left), get_weight(ptr->right->right)))
 				ptr->right = rotate_right(ptr->right);
 			ptr = rotate_left(ptr);
 		}
+		child = ptr;
 	}
-struct binary_tree_node *rotate_right(struct binary_tree_node *ptr);
-struct binary_tree_node *rotate_left(struct binary_tree_node *ptr);
-void recursive_free_node(binary_tree_node *ptr);
+	bt->root = child;
+}
+
+struct binary_tree_node *rotate_right(struct binary_tree_node *ptr)
+{
+	struct binary_tree_node *child;
+	child = ptr->left;
+	ptr->left = child->right;
+	ptr->left->parent = ptr;
+	child->right = ptr;
+	ptr->parent = child;
+	ptr->weight = get_weight(ptr->left) + get_weight(ptr->right);
+	child->weight = get_weight(child->left) + get_weight(child->right);
+	return child;
+}
+
+struct binary_tree_node *rotate_left(struct binary_tree_node *ptr)
+{
+	struct binary_tree_node *child;
+	child = ptr->right;
+	ptr->right = child->left;
+	ptr->right->parent = ptr;
+	child->left = ptr;
+	ptr->parent = child;
+	ptr->weight = get_weight(ptr->left) + get_weight(ptr->right);
+	child->weight = get_weight(child->left) + get_weight(child->right);
+	return child;
+}
+
+void recursive_free_node(struct binary_tree_node *ptr)
+{
+	if (ptr) {
+		recursive_free_node(ptr->left);
+		recursive_free_node(ptr->right);
+		free_csv(ptr->value);
+		free(ptr);
+	}
+}
+
+int unbalanced(unsigned long a, unsigned long b)
+{
+	return (a * a > b * (b + 2*a));
+}
+
+int double_rotate(unsigned long a, unsigned long b)
+{
+	return (a * a > 2 * b * b);
+}
+
+unsigned long get_weight(struct binary_tree_node *ptr)
+{
+	return (ptr ? ptr->weight : 1);
+}

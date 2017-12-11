@@ -45,6 +45,7 @@ struct csv *initialize_csv()
 	table = malloc(sizeof(*table));
 	table->front = NULL;
 	table->total_rows = 0;
+	table->total_length = 0;
 	pthread_mutex_init(&table->mutex, NULL);
 	return table;
 }
@@ -68,7 +69,7 @@ struct file_node *read_csv(char *buffer, struct csv *table, int len)
 		printf("header length %d, line length is %d\n", strlen(header), strlen(line));
 		fputs("invalid header\n", stderr);
 		free(buffer);
-		return;
+		return NULL;
 	}
 	row_capacity = 4;
 	matrix = malloc(row_capacity * sizeof(*matrix));
@@ -107,26 +108,25 @@ void append_csv(struct csv *table, struct file_node *fn, int len)
 	table->front = fn;
 	table->total_len += len;
 	table->total_rows += fn->num_rows;
-	pthread_mutex_unlock(&table->mutex);
 }
 
-char *print_csv(struct csv *table;)
+char *print_csv(file_node *ptr)
 {
 
 	int i, j;
-	char *buffer = malloc(table->total_length + 1);
+	char *buffer = malloc(ptr->total_length + 1);
 	char *ptr;
 	sprintf(buffer, "%s", header);
 	ptr = buffer + strlen(buffer);
-	for (i = 0; i < table->num_rows; i++) {
+	for (i = 0; i < ptr->num_rows; i++) {
 		for (j = 0; j < NUM_COLS; j++) {
-			if (table->matrix[i][j]) {
-				if (index(table->matrix[i][j], ',')){
-					sprintf(ptr, "\"%s\"", table->matrix[i][j]);
+			if (ptr->matrix[i][j]) {
+				if (index(ptr->matrix[i][j], ',')){
+					sprintf(ptr, "\"%s\"", ptr->matrix[i][j]);
 					ptr += strlen(ptr);
 				}
 				else{
-					sprintf(ptr, table->matrix[i][j]);
+					sprintf(ptr, ptr->matrix[i][j]);
 					ptr += strlen(ptr);
 				}
 			}		
@@ -150,8 +150,9 @@ void free_csv(struct csv *table)
 		for (i = 0; i < ptr->num_rows; i++) {
 			for (j = 0; j < NUM_COLS; j++)
 				free(ptr->matrix[i][j]);
-			free(table->matrix[i]);
+			free(ptr->matrix[i]);
 		}
+		free(ptr->matrix);
 		next = ptr->next;
 		free(ptr);
 	}

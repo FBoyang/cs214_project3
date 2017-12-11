@@ -10,14 +10,14 @@ struct file_node {
 struct csv {
 	struct file_node *front;
 	int total_rows;
+	int total_length;
 	pthread_mutex_t mutex;
 };
 
 struct csv* initialize_csv();
-void read_csv(char *buffer, struct csv *table, int len);
-void append_file(char *file, int len, int sid, struct bufarg* ba);
-void append_csv(struct csv *table, char ***new_entries, int num_new, int length);
-char *print_csv(struct bufarg args);
+struct file_node *read_csv(char *buffer);
+void append_csv(struct csv *table, struct file_node *fn, int len);
+char *print_csv(struct file_node *ptr);
 void free_csv(struct csv *table);
 int get_field_index(char *);
 #endif

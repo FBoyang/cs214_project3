@@ -1,6 +1,6 @@
 CC = gcc
-server_sources = buf_store.c mergesort.c readbuf.c server.c 
-server_headers = buf_store.h mergesort.h readbuf.h 
+server_sources = binary_tree.c mergesort.c csv.c server.c 
+server_headers = binary_tree.h mergesort.h csv.h 
 
 .PHONY: all
 all: server client
