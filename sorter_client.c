@@ -12,6 +12,7 @@ int pool=-1;
 sem_t sem_name;
 char id[256];
 LinkList* pidCounter=NULL;
+const int BUF_LEN = 256;
 
 void CallServer(FILE *fptr,char*node){// with finish signal
     int sockfd;
@@ -29,21 +30,23 @@ void CallServer(FILE *fptr,char*node){// with finish signal
     }
     if(strcmp(node,"QUIT_SERVER")==0){
         //        here is write, tell server to stop
-char send[256];
+	char send[128];
         sprintf(send, "QUIT_SERVER-_-%s", id);
 
-        int n = write(sockfd,node , sizeof(char)*256);
+        int n = write(sockfd, send, sizeof(char)*128);
         if(n <= 0){
             perror("write");
         }
-        char rebeg[256];
-        n = read(sockfd, rebeg, sizeof(char)*256);
+        char rebeg[128];
+        n = read(sockfd, rebeg, sizeof(char)*128);
         if(n <= 0){
             perror("read");
         }
-        int size=atoi(rebeg);
-        char* recv_buf = (char*)malloc(sizeof(char)* 1024);
-        FILE *fptr;
+	//printf("rebeg is %s\n", rebeg);
+        int len=atoi(rebeg);
+	//printf("receive size is %d\n", size);
+ char buffer[BUF_LEN];
+        FILE *fe;
         //remove("output.csv");
         int length=strlen(output)+24+strlen(sortedBy);
         char fileN[length];
@@ -53,27 +56,36 @@ char send[256];
         strcat(fileN,"AllFiles-sorted-<");
         strcat(fileN,sortedBy);
         strcat(fileN,">.csv");
-        fptr = fopen(fileN,"w+");
+        fe = fopen(fileN,"w+");
         int a = 0;
-        do{
-            a += read(sockfd, recv_buf, sizeof(char)*1024);
-            fwrite(recv_buf, 1, sizeof(char)*1024, fptr);
-            fflush(fptr);
-            memset(recv_buf, 0, sizeof(char)*1024);
-        }while(a < size - 1024);
-        a = read (sockfd, recv_buf, sizeof(char)*(size - a));
-        fwrite(recv_buf, 1, a, fptr);
-        fclose(fptr);
+char * file,*fptr;
+int i=0;
+        file = malloc((len + 1) * sizeof(char));
+        for (fptr = file, i = 0; i <= len - BUF_LEN; fptr += a, i += a) {
+            a = read(sockfd, buffer, BUF_LEN);
+printf("line %s\n\n\n",buffer);
+if(a<0){
+perror("read final");
+break;
+}
+            strncpy(fptr, buffer, BUF_LEN);
+            memset(buffer, 0,  BUF_LEN);
+        }
+	printf("len is %d\n", len);
+        read(sockfd, buffer, len - i);
+        strncpy(fptr, buffer, len - i);
+file[len]='\0';
+
+        fwrite(file, 1, len, fe);
+a = write(sockfd, "done", 4);
+	if ( a < 0){
+		perror("write");
+	}
+        fclose(fe);
+	close(sockfd);
     }else if(strcmp(node,"Get_Id")==0){
         printf("get in get id\n\n\n\n\n\n");
 	char send[256];
-        //reconsider this part
-//    int field_index = get_field_index(sortedBy);
-//    if(field_index == -1){
-//        return;
-//    }
-        //till here
-//    sprintf(send, "Get_Id-_-%d", field_index);
         sprintf(send, "Get_Id-_-%s", sortedBy);
         int n = write(sockfd, send , sizeof(char)*256);
         if(n < 0){
@@ -120,13 +132,13 @@ char send[256];
         }
         free(buffer);
         char rbuffer[256];
-        n = read(sockfd, rbuffer, sizeof(char)*256);
-        
+        n = read(sockfd, rbuffer, sizeof(char)*4);
+       	//printf("rbuffer is %s\n", rbuffer); 
         if(n < 0){
             perror("read");
         }
-        printf("from server: %s\n", rbuffer);
-        close(sockfd);
+        //printf("from server: %s\n", rbuffer);
+        //while (strcmp(rbuffer, "done") == 0);
     }
     if (pool>0) {
         sem_post(&sem_name);
@@ -258,7 +270,7 @@ int main(int argc, char * const argv[]) {
         perror("path error");
         exit(2);
     }
-    if (port<=0) {
+    if (port<0) {
         perror("port error");
         exit(2);
     }
@@ -293,6 +305,7 @@ int main(int argc, char * const argv[]) {
         LinkList*pidCount=pidCounter->next;
         pidCounter=pidCount;
     }
+    //printf("quit\n");
     CallServer(NULL,"QUIT_SERVER");
     //end
     return 0;

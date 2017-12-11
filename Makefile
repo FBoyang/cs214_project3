@@ -6,10 +6,10 @@ headers = buf_store.h mergesort.h readbuf.h
 all: server client
 
 server: $(sources) $(headers)
-	gcc -pthread -lm -Wall -o server $(sources)
+	gcc -pthread -g -lm -Wall -o server $(sources)
 
 client: sorter_client.c sorter_client.h
-	gcc -pthread -lm -Wall -o client sorter_client.c
+	gcc -pthread -g -lm -Wall -o client sorter_client.c
 
 .PHONY: clean
 clean:

@@ -1,252 +1,169 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <fcntl.h>
-#include <unistd.h>
 #include <string.h>
+#include <unistd.h>
+#include <sys/socket.h>
+#include <arpa/inet.h>
+#include <netinet/in.h>
+#include <pthread.h>
 #include "buf_store.h"
 #include "readbuf.h"
-#include "mergesort.h"
 
-/*socket stuff
- */
-#include <sys/socket.h>
-#include <netinet/in.h>
+const int BUF_LEN = 256;
+const int HDR_LEN = 128;
+const int PAD_LEN = 128;
+const int BACKLOG = 16;
+pthread_mutex_t lock=PTHREAD_MUTEX_INITIALIZER;
 
-/*Pthread Library*/
-#include <pthread.h>
+struct service_args {
+    int fd;
+    struct bufarg **ba;
+};
 
-/*Macros (define your macros below */
-#define MAX_NUM_THREAD 10
-
-/*******start coding here *******/
-//you need a port number here
-#define PORT 9011
-
-/*******coding End *******/
-
-int status = 1;
-int num_of_thread = 0;
-
-char* itoa(int val, int base){
-    static char buf[32] = {0};
-    int i = 30;
-    for(; val && i; --i, val /= base)
-        buf[i] = "0123456789abcdef"[val % base];
-    return &buf[i+1];
-}
-
-void *service(void *args)
-{
-    //this is the socket for our server
-    //to talk to the client
-    //define two buffers, receive and send
-    struct sarg *arg = (struct sarg*) args;
-    int client_socket = arg -> socketfd;
-    int size;
-    int sess_id = 0;
-    int field = 0;
-    /*step 5: receive data */
-    //use read system call to read data
-    
-    struct bufarg *buf_list = arg -> id_list;
-    //create a buffer list and get an available id
-    
-    
-    //by Chijun Sha start
-    char rebeg[256];
-    int a = read(client_socket, rebeg, 256);
-    if (a <= 0){
-        perror("read");
-    }
-    char *readrec=strtok_r(rebeg,"-_-",&op);
-    
-    //by CHijun Sha END
-    
-    
-    if(strcmp(readrec,"Get_Id")==0){
-        //here should write to me
-        printf("now sending the session id\n\n\n\n\n\n");
-        //send session id to client
-        
-        
-        
-        //By Chijun Sha start
-        char *field_index = strtok_r(NULL,"-_-",&op);
-        field = get_field_index(sortedBy);
-        if(field == -1){
-            return;
-        }
-        //By Chijun Sha end
-        
-        
-        
-        sess_id = get_id(buf_list);
-        if(buf_list[sess_id].table == NULL)
-            buf_list[sess_id].table = malloc(sizeof(struct csv));
-        initialize_csv(buf_list[sess_id].table);
-        char *send_id = itoa(sess_id, 10);
-        if(write(client_socket, send_id, 4) <= 0){
-            perror("write");
-        }
-    }
-    else if(strcmp(readrec, "QUIT_SERVER") == 0){
-        
-        
-        //By Chijun Sha start
-        //do you need get id first?
-        
-         char *field_index = strtok_r(NULL,"-_-",&op);
-         sess_id = atoi(field_index);
-        //by Chijun Sha end
-        
-        //ATTENTION:
-        //NOTE FOR THIS PART: I need to get a size first, so write to me a size first then the whole thing
-        
-        
-        //Quit server
-        /*STEP 6: send data */
-        // prepare your sending data
-        // use write system call to send data
-        char ***matrix = buf_list[sess_id].table -> matrix;
-        int high = (buf_list[sess_id].table) -> num_rows;
-        mergesort(0, high, field, matrix);
-        int t_size = buf_list[sess_id].size;
-        char *sort_buffer = malloc(t_size + 10);
-        print_csv(buf_list[sess_id].table, sort_buffer);
-        //By Chijun Sha start
-        //ATTENTION:
-        //NOTE FOR THIS PART: I need to get a size first, so write to me a size first then the whole thing
-        char send[256];
-        //Boyang, please modify here, I'm not sure what is size (length)
-//        sprintf(send, "%d", stelen(sort_buffer));
-//        write(client_socket, send, t_size+ 10);
-
-        //By Chijun SHa end
-        write(client_socket, sort_buffer, t_size + 10);
-        printf("[s] Data sent \n");
-    }else{
-        //else, do normal works
-        int a;
-        /*
-         FILE *fptr;
-         remove("output.csv");
-         fptr = fopen("output.csv", "w");
-         */
-        
-        
-        
-        //By Chijun Sha start
-        //        char *recv_buf = malloc(10);
-        //        char * op;
-        //        char *id=strtok_r(rebeg,"-_-",&op);
-        //        char *length=strtok_r(NULL,"-_-",&op);
-        //        size=atoi(readrec);
-        sess_id = atoi(readrec);
-        char *length=strtok_r(NULL,"-_-",&op);
-        size=atoi(readrec);
-        buf_list[sess_id].size += size;
-        printf("now reciving%d,path%s", size, id);
-        char *recv_buf = realloc(recv_buf, 1024);
-        //by Chijun Sha end
-        
-        
-        
-        a = 0;
-        do{
-            a += read(client_socket, recv_buf, 1024);
-            memset(recv_buf, 0, 1024);
-        }while(a < size - 1024);
-        a = read (client_socket, recv_buf, size - a);
-        //now append the current buffer into the corresponding matrix
-        readbuf(recv_buf, &buf_list[sess_id]);
-        
-        
-        printf("buffer size is %d\n", size);
-        //printf("last 10 char of buffer is %s\n", recv_buf[size - 10]);
-        printf("[r] Reading from  client: %s\n", recv_buf);
-    }
-    /*step 7: close socket */
-    close(client_socket);
-    
-    return NULL;
-}
-
+void *service(void *arg);
 
 int main(int argc, char **argv)
 {
-    /*optional: You can add args checking
-     * 	here. That means you allow user to
-     * 	enter some information such as port
-     * 	number
-     */
-    
-    /***********start code here *****************/
-    
-    int server_sock, client_sock;
-    struct sockaddr_in server_address;
-    
-    /*	step1: create socket and setup sockaddr_in */
-    //you can call socket(AF_INET, SOCK_STREAM, 0)
-    //to create a socket
-    //REMEMBER: ALWAYS CHECK FAILURE WHEN YOU DO I/O
-    if ((server_sock = socket(AF_INET, SOCK_STREAM, 0)) < 0)
-    {
-        perror("socket");
-        exit(EXIT_FAILURE);
-    }
-    //setup the sockaddr_in struct you defined above
-    server_address.sin_family = AF_INET;
-    server_address.sin_addr.s_addr = INADDR_ANY;
-    server_address.sin_port = htons(PORT);
-    
-    if (bind(server_sock, (struct sockaddr*)&server_address, sizeof(server_address))<0)
-    {
-        perror("bind");
-        //close socket
-        close(server_sock);
-        //exit your program
-        exit(EXIT_FAILURE);
-    }
-    
-    //step *3 listen
-    //Now we have a binded socket, we can use this socket
-    //to listen on a port
-    if(listen(server_sock, 0) < 0)
-    {
-        perror("listen");
-        exit(EXIT_FAILURE);
-    }
-    
-    printf("Waiting for connections ...\n");
-    struct bufarg *buf_list = NULL;
-    
-    //we use a while loop to keep waiting for the connections
-    while(status)
-    {
-        /*STEP 4: create connnection/accept connection request */
-        //use client socket to accept client request
-        client_sock = accept(server_sock, NULL, NULL);
-        struct sarg *arg = malloc(sizeof(struct sarg*));
-        arg -> id_list = buf_list;
-        if(client_sock < 0){
-            perror("accept");
-            close(server_sock);
-            exit(EXIT_FAILURE);
+    int c, port, sock, fd;
+    struct sockaddr_in addr;
+    struct bufarg *ba;
+    struct service_args *sa;
+    pthread_t tid;
+    port = 0;
+    fprintf(stdout, "Received connections from: ");
+    while ((c = getopt(argc, argv, "p:")) != -1) {
+        switch (c) {
+        case 'p':
+            port = atoi(optarg);
         }
-        
-        
-        printf("[+] Connect to client %d\n", client_sock);
-        pthread_t tid;
-        arg -> socketfd = client_sock;
-        //tid_pool[i].socketfd  = client_sock;
-        //service((void *)i);
-        
-        pthread_create(&tid, NULL, service, (void*)arg);
-        // num_of_thread ++;
-        pthread_detach(tid);
-        
-        
+    }
+    if (port == 0) {
+        fputs("please provide a port number\n", stderr);
+        return 1;
+    }
+    if ((sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)) == -1) {
+        fputs("failed to create socket\n", stderr);
+        return 1;
+    }
+    bzero(&addr, sizeof(addr));
+    addr.sin_family = AF_INET;
+    addr.sin_port = htons(port);
+    addr.sin_addr.s_addr = INADDR_ANY;
+    if (bind(sock, (struct sockaddr *) &addr, sizeof(addr)) == -1) {
+        fprintf(stderr, "failed to bind socket %d to port %d\n", sock, port);
+        return 1;
+    }
+    if (listen(sock, BACKLOG) == -1) {
+        fprintf(stderr, "failed to listen on socket %d with backlog %d\n", sock, BACKLOG);
+        return 1;
+    }
+    ba = init_array();
+    while (1) {
+	printf("waiting for connections\n\n\n");
+        if ((fd = accept(sock, NULL, NULL)) == -1) {
+            fprintf(stderr, "failed to accept connection on socket %d\n", sock);
+            return 1;
+        }
+        sa = (struct service_args *)malloc(sizeof(struct service_args));
+        sa->fd = fd;
+        sa->ba = &ba;
+        if (pthread_create(&tid, NULL, &service, sa)) {
+            fputs("failed to create thread\n", stderr);
+            free(sa);
+            return 1;
+        }
     }
     return 0;
-}	
+}
 
+void *service(void *arg)
+{
+    struct service_args *args;
+    struct bufarg **ba;
+    int fd, sid, len, i;
+    char buffer[BUF_LEN], field_name[BUF_LEN], *file, *fptr;
+    args = (struct service_args *) arg;
+    fd = args->fd;
+    ba = args->ba;
+    read(fd, buffer, HDR_LEN);
+    if (strncmp(buffer, "QUIT_SERVER", 11) == 0) {
+        if (sscanf(buffer, "QUIT_SERVER-_-%d", &sid) == 1 && sid < (*ba)->id_size && (*ba)[sid].isFree == 0) {
+	    //printf("quit server \n");
+	    //printf("session id is %d, num row is %d, word length is %d\n", sid,(*ba[sid]).table -> num_rows, (*ba[sid]).table -> t_length);
+            file = print_csv(*ba[sid]);
+	    if (file == NULL){
+		return NULL;
+	    }
+            len = strlen(file);
+	    //printf("file is %s\n", file);
+	    //printf("file length is %d\n", len);
+            sprintf(buffer, "%ld", strlen(file));
+            write(fd, buffer, HDR_LEN);
+
+
+	    //write(fd, file, strlen(file));
+
+
+int size=0;
+int len=strlen(file);
+        //By Chijun SHa end
+do{
+        size+=write(fd, file+size, len-size);
+}while(size<len);
+// printf("\n\n\n\ndone hrererhg\n\n\n\n\n");
+
+
+
+char rbuffer[256];
+   int n = read(fd, rbuffer, sizeof(char)*4);
+       	//printf("rbuffer is %s\n", rbuffer); 
+        if(n < 0){
+            perror("read");
+        }
+	// printf("\n\n\n\nfsadfdasfdfsdadone hrererhg%s\n\n\n\n\n",rbuffer);     
+/*
+            for (fptr = file, i = 0; i < len - BUF_LEN; fptr += a, i += a) {
+                strncpy(buffer, fptr, BUF_LEN);
+		printf("current buffer is %s\n", buffer);	
+                a =  write(fd, buffer, BUF_LEN);
+            }
+
+*/	    
+            free(file);
+        }
+    } else if (strncmp(buffer, "Get_Id", 6) == 0) {
+        if (sscanf(buffer, "Get_Id-_-%s", field_name) == 1) {   
+	    sid = get_id(field_name, ba);
+            sprintf(buffer, "1%d", sid);
+	    printf("can get id\n");
+            write(fd, buffer, HDR_LEN);
+        }
+    } else if (sscanf(buffer, "%d-_-%d", &sid, &len) == 2) {
+	printf("read data\n");
+        read(fd, buffer, PAD_LEN);
+        file = malloc((len + 1) * sizeof(char));
+	int a = 0;
+
+        for (fptr = file, i = 0; i <= len - BUF_LEN; fptr += a, i += a) {
+            a = read(fd, buffer, BUF_LEN);
+            strncpy(fptr, buffer, BUF_LEN);
+        }
+	printf("len is %d\n", len);
+        read(fd, buffer, len - i);
+        strncpy(fptr, buffer, len - i);
+        file[len - 1] = '\0';
+	//printf("\n\nfile is %s\n",file);
+        
+        pthread_mutex_lock(&lock);
+        append_file(file, len, sid, *ba);
+        pthread_mutex_unlock(&lock);
+	a = write(fd, "done", 4);
+	if ( a < 0){
+		perror("write");
+	}	
+	//printf("row num is %d\n", *ba[sid] -> table -> num_rows);
+    }
+    close(fd);
+    free(arg);
+    return NULL;
+}
