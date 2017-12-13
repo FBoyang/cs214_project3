@@ -6,10 +6,12 @@
 struct csv *search_and_lock(struct binary_tree *bt, unsigned int target);
 struct csv *delete_and_lock(struct binary_tree *bt, unsigned int target);
 int insert(struct binary_tree *bt, unsigned int target, char *field_name);
-struct binary_tree_node *recursive_insert(struct binary_tree_node *root, struct binary_tree_node *ptr)
+struct binary_tree_node *recursive_insert(struct binary_tree_node *root, struct binary_tree_node *ptr);
 struct binary_tree_node *search(struct binary_tree_node *root, unsigned int target);
 struct csv *delete(struct binary_tree *bt, unsigned int target);
-void rebalance(struct binary_tree *bt, struct binary_tree_node *ptr);
+struct binary_tree_node *recursive_delete(struct binary_tree_node *root, unsigned int target, struct csv **table);
+struct binary_tree_node *predecessor_delete(struct binary_tree_node *ptr, struct binary_tree_node *anc);
+struct binary_tree_node *rebalance(struct binary_tree_node *ptr);
 struct binary_tree_node *rotate_right(struct binary_tree_node *ptr);
 struct binary_tree_node *rotate_left(struct binary_tree_node *ptr);
 void recursive_free_node(struct binary_tree_node *ptr);
@@ -133,16 +135,66 @@ struct binary_tree_node *search(struct binary_tree_node *root, unsigned int targ
         ret = search(root->left, target);
     else
         ret = search(root->right, target);
-    return NULL;
+    return ret;
 }
 
 struct csv *delete(struct binary_tree *bt, unsigned int target)
 {
-    struct binary_tree_node *ptr, *par, *tmp;
+    struct binary_tree_node *ptr;
     struct csv *ret;
+    ptr = recursive_delete(bt->root, target, &ret);
+    if (ptr) {
+        rebalance(ptr);
+        bt->root = ptr;
+    }
+    return ret;
 }
 
-void rebalance(struct binary_tree_node *ptr)
+struct binary_tree_node *recursive_delete(struct binary_tree_node *root, unsigned int target, struct csv **table)
+{
+    struct binary_tree_node *ret;
+    if (root == NULL) {
+        *table = NULL;
+        ret = NULL;
+    } else if(target == root->key) {
+        *table = root->value;
+        if (root->left && root->right)
+            ret = predecessor_delete(root->left, root);
+        else if (root->left)
+            ret = root->left;
+        else if (root->right)
+            ret = root->right;
+        else
+            ret = NULL;
+        free(root);
+    } else if (target < root->key) {
+        root->left = recursive_delete(root->left, target, table);
+        ret = root;
+    } else {
+        root->right = recursive_delete(root->right, target, table);
+        ret = root;
+    }
+    rebalance(ret);
+    return ret;
+}
+
+struct binary_tree_node *predecessor_delete(struct binary_tree_node *ptr, struct binary_tree_node *anc)
+{
+    struct binary_tree_node *ret;
+    if (ptr->right) {
+        ptr->right = predecessor_delete(ptr->right, anc);
+        ret = ptr;
+    } else {
+        ret = ptr->left;
+        anc->key = ptr->key;
+        anc->value = ptr->value;
+        free(ptr);
+    }
+    rebalance(ret);
+    return ret;
+}
+
+struct binary_tree_node *rebalance(struct binary_tree_node *ptr)
 {
     struct binary_tree_node *ret;
     if (ptr == NULL) {
@@ -156,6 +208,7 @@ void rebalance(struct binary_tree_node *ptr)
             ptr->right = rotate_right(ptr->right);
         ret = rotate_left(ptr);
     } else {
+        ptr->weight = get_weight(ptr->left) + get_weight(ptr->right);
         ret = ptr;
     }
     return ret;
@@ -166,9 +219,7 @@ struct binary_tree_node *rotate_right(struct binary_tree_node *ptr)
     struct binary_tree_node *child;
     child = ptr->left;
     ptr->left = child->right;
-    ptr->left->parent = ptr;
     child->right = ptr;
-    ptr->parent = child;
     ptr->weight = get_weight(ptr->left) + get_weight(ptr->right);
     child->weight = get_weight(child->left) + get_weight(child->right);
     return child;
@@ -179,9 +230,7 @@ struct binary_tree_node *rotate_left(struct binary_tree_node *ptr)
     struct binary_tree_node *child;
     child = ptr->right;
     ptr->right = child->left;
-    ptr->right->parent = ptr;
     child->left = ptr;
-    ptr->parent = child;
     ptr->weight = get_weight(ptr->left) + get_weight(ptr->right);
     child->weight = get_weight(child->left) + get_weight(child->right);
     return child;
