@@ -58,9 +58,9 @@ int main(int argc, char **argv)
         return 1;
     }
     ba = init_array();
+    pthread_mutex_init(&id_locker, NULL); 
     while (1) {
 	printf("waiting for connections\n\n\n");
-	pthread_mutex_init(&id_locker, NULL); 
         if ((fd = accept(sock, NULL, NULL)) == -1) {
             fprintf(stderr, "failed to accept connection on socket %d\n", sock);
             return 1;
@@ -73,7 +73,6 @@ int main(int argc, char **argv)
             free(sa);
             return 1;
         }
-	pthread_mutex_destroy(&id_locker);
 
     }
     return 0;
@@ -93,8 +92,8 @@ void *service(void *arg)
 	//check the validity of quit_server information
         if (sscanf(buffer, "QUIT_SERVER-_-%d", &sid) == 1 && sid < (*ba)->id_size && (*ba)[sid].isFree == 0) {
 	//store output into file 
-            file = print_csv((*ba)[sid]);
-	    free_id(&((*ba)), sid); 
+            file = print_csv(*ba[sid]);
+	    free_bufarg(&(*ba[sid])); 
 	    if (file == NULL){
 		return NULL;
 	    }
