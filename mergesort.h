@@ -3,7 +3,6 @@
 
 //pthread_mutex_t locker = PTHREAD_MUTEX_INITIALIZER;
 
-char ***smatrix;
  
 struct mergesort_args {
 	char ***matrix;
@@ -13,6 +12,6 @@ struct mergesort_args {
 	int high;
 };
 
-void mergesort(int low, int high, int field, char ***matrix);
+void mergesort(int low, int high, int field, char ***matrix, char ***smatrix);
 
 #endif

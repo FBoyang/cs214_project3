@@ -13,11 +13,13 @@ const int BUF_LEN = 256;
 const int HDR_LEN = 128;
 const int PAD_LEN = 128;
 const int BACKLOG = 16;
+int global_sid = 0;
+pthread_mutex_t sid_lock = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t lock=PTHREAD_MUTEX_INITIALIZER;
 
 struct service_args {
     int fd;
-    struct bufarg **ba;
+    struct bufNode *ba;
 };
 
 void *service(void *arg);
@@ -26,7 +28,7 @@ int main(int argc, char **argv)
 {
     int c, port, sock, fd;
     struct sockaddr_in addr;
-    struct bufarg *ba;
+    struct bufNode *ba;
     struct service_args *sa;
     pthread_t tid;
     port = 0;
@@ -57,8 +59,7 @@ int main(int argc, char **argv)
         fprintf(stderr, "failed to listen on socket %d with backlog %d\n", sock, BACKLOG);
         return 1;
     }
-    ba = init_array();
-    pthread_mutex_init(&id_locker, NULL); 
+    ba = init_node();
     while (1) {
 	printf("waiting for connections\n\n\n");
         if ((fd = accept(sock, NULL, NULL)) == -1) {
@@ -67,7 +68,7 @@ int main(int argc, char **argv)
         }
         sa = (struct service_args *)malloc(sizeof(struct service_args));
         sa->fd = fd;
-        sa->ba = &ba;
+        sa->ba = ba;
         if (pthread_create(&tid, NULL, &service, sa)) {
             fputs("failed to create thread\n", stderr);
             free(sa);
@@ -81,19 +82,24 @@ int main(int argc, char **argv)
 void *service(void *arg)
 {
     struct service_args *args;
-    struct bufarg **ba;
+    struct bufNode *ba;
+    struct bufNode *tmp_node;
     int fd, sid, len, i;
     char buffer[BUF_LEN], field_name[BUF_LEN], *file, *fptr;
     args = (struct service_args *) arg;
     fd = args->fd;
     ba = args->ba;
+
     read(fd, buffer, HDR_LEN);
     if (strncmp(buffer, "QUIT_SERVER", 11) == 0) {
 	//check the validity of quit_server information
-        if (sscanf(buffer, "QUIT_SERVER-_-%d", &sid) == 1 && sid < (*ba)->id_size && (*ba)[sid].isFree == 0) {
-	//store output into file 
-            file = print_csv(*ba[sid]);
-	    free_bufarg(&(*ba[sid])); 
+        if (sscanf(buffer, "QUIT_SERVER-_-%d", &sid) == 1) {
+	//store output into file
+	    tmp_node = search(ba, sid); 
+	    if(tmp_node == NULL)
+		    return NULL;
+            file = print_csv(tmp_node);
+	    delete(ba, sid); 
 	    if (file == NULL){
 		return NULL;
 	    }
@@ -130,7 +136,15 @@ void *service(void *arg)
         }
     } else if (strncmp(buffer, "Get_Id", 6) == 0) {
         if (sscanf(buffer, "Get_Id-_-%s", field_name) == 1) {   
-	    sid = get_id(field_name, ba);
+	    pthread_mutex_lock(&sid_lock);
+	    sid = global_sid;
+	    global_sid ++;
+	    tmp_node = init_node();
+	    tmp_node -> sess_id = sid;
+	    tmp_node -> field_num =  get_field_index(field_name);
+	    add_node(ba, tmp_node);
+	    pthread_mutex_unlock(&sid_lock);
+	    
 	    if(sid == -1)
 		sprintf(buffer, "0");
    	    else
@@ -156,7 +170,7 @@ void *service(void *arg)
 	//printf("\n\nfile is %s\n",file);
         
         pthread_mutex_lock(&lock);
-        append_file(file, len, sid, *ba);
+        append_file(file, len, sid, ba);
         pthread_mutex_unlock(&lock);
 	a = write(fd, "done", 4);
 	if ( a < 0){

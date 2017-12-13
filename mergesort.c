@@ -15,7 +15,7 @@ int lexcmp(char *a, int alen, char *b, int blen);
 int charcmp(char a, char b);
 int strbegin(char *str);
 int strend(char *str);
-void merge(int low, int mid, int high, int field_index, char ***matrix);
+void merge(int low, int mid, int high, int field_index, char ***matrix, char ***smatrix);
 
 /*
 void serial_mergesort(int low, int high, int field, char ***matrix)
@@ -33,7 +33,7 @@ void serial_mergesort(int low, int high, int field, char ***matrix)
 
 */
 
-void mergesort(int low, int high, int field, char ***matrix)
+void mergesort(int low, int high, int field, char ***matrix, char ***smatrix)
 {
     int i;
     int s_index[high -low];
@@ -54,7 +54,7 @@ void mergesort(int low, int high, int field, char ***matrix)
     while (s_index[0] != high){
         i = low;
         while (i < high && s_index[i - low] < high){
-            merge(i, s_index[i-low], s_index[s_index[i - low]-low], field, matrix);
+            merge(i, s_index[i-low], s_index[s_index[i - low]-low], field, matrix, smatrix);
             s_index[i-low] = s_index[s_index[i-low] - low];
             i = s_index[i - low]; 
         }
@@ -66,7 +66,7 @@ void mergesort(int low, int high, int field, char ***matrix)
 
 
 
-void merge(int low, int mid, int high, int field_index, char ***matrix)
+void merge(int low, int mid, int high, int field_index, char ***matrix, char ***smatrix)
 {
     //printf("**********low is %d, mid is %d, high is %d**********\n", low, mid, high);
     int i, j;

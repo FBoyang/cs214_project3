@@ -5,7 +5,7 @@
 #include "readbuf.h"
 #include "mergesort.h"
 #define NUM_COLS 28
-
+pthread_mutex_t file_locker = PTHREAD_MUTEX_INITIALIZER;
 char *header = "color,director_name,num_critic_for_reviews,duration,director_facebook_likes,actor_3_facebook_likes,actor_2_name,actor_1_facebook_likes,gross,genres,actor_1_name,movie_title,num_voted_users,cast_total_facebook_likes,actor_3_name,facenumber_in_poster,plot_keywords,movie_imdb_link,num_user_for_reviews,language,country,content_rating,budget,title_year,actor_2_facebook_likes,imdb_score,aspect_ratio,movie_facebook_likes";
 
 char *field_list[NUM_COLS] = {
@@ -67,6 +67,7 @@ void readbuf(char *buffer, struct csv *table, int len)
 	//printf("header %s\n", line);
 	if (line == NULL || strcmp(line, header)) {
 		fflush(stdout);
+		printf("header is %s\n", line);
 		fputs("invalid header\n", stderr);
 		free(buffer);
 		return;
@@ -108,14 +109,18 @@ void readbuf(char *buffer, struct csv *table, int len)
 
 
 
-void append_file(char *file, int len, int sid, struct bufarg *ba)
+void append_file(char *file, int len, int sid, struct bufNode *ba)
 {
-	readbuf(file, ba[sid].table, len);
+	
+	pthread_mutex_lock(&file_locker);
+	struct bufNode *tmp = search(ba, sid);
+	readbuf(file, tmp->table, len);
+	pthread_mutex_unlock(&file_locker);
 }
 
 void append_csv(struct csv *table, char ***new_entries, int num_new, int len)
 {
-	//pthread_mutex_lock(&table->mutex);
+	pthread_mutex_lock(&table->mutex);
 	table ->t_length += len;
 	if (table->num_rows + num_new > table->row_capacity) {
 		table->row_capacity = 2 * (table->num_rows + num_new);
@@ -123,22 +128,22 @@ void append_csv(struct csv *table, char ***new_entries, int num_new, int len)
 	}
 	memcpy(table->matrix + table->num_rows, new_entries, num_new * sizeof(*table->matrix));
 	table->num_rows += num_new;
-	//pthread_mutex_unlock(&table->mutex);
+	pthread_mutex_unlock(&table->mutex);
 }
 
-char *print_csv(struct bufarg buf)
+char *print_csv(struct bufNode *buf)
 {
 
 	int i, j;
 	//printf("mergesort arguments 1: 0, %d\n", buf.field_num);
 	//printf("mergesort arguments 2: %d\n", buf.table -> num_rows);
-	if(buf.table == NULL)
+	if(buf -> table == NULL)
 		return NULL;
-	smatrix = malloc(sizeof(char **) * (buf.table -> num_rows));	
-	mergesort(0, (buf).table -> num_rows, buf.field_num, (buf).table -> matrix);
-	struct csv *table = buf.table;
+	char ***smatrix = malloc(sizeof(char **) * (buf -> table -> num_rows));	
+	mergesort(0, (buf) -> table -> num_rows, buf -> field_num, (buf) -> table -> matrix, smatrix);
+	struct csv *table = buf -> table;
 	
-	int length = buf.table -> t_length;
+	int length = buf -> table -> t_length;
 	//printf("length after sorting is %d\n", length);
 	char *buffer = malloc(length+1);
 	char *ptr;
@@ -146,7 +151,8 @@ char *print_csv(struct bufarg buf)
 	ptr = buffer + strlen(buffer);
 	for (i = 0; i < table->num_rows; i++) {
 		for (j = 0; j < NUM_COLS; j++) {
-			if (smatrix[i][j]) {
+			
+			if(smatrix[i][j]){
 				if (index(smatrix[i][j], ',')){
 					//printf("smatrix[%d][%d] is %s\n", i, j, smatrix[i][j]);
 					sprintf(ptr, "\"%s\"", smatrix[i][j]);
