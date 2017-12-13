@@ -3,11 +3,11 @@
 #include <pthread.h>
 #include "binary_tree.h"
 
-struct csv *search_and_lock(struct binary_tree *bt, unsigned long target);
-struct csv *delete_and_lock(struct binary_tree *bt, unsigned long target);
-int insert(struct binary_tree *bt, unsigned long target);
-struct binary_tree_node *search(struct binary_tree *bt, unsigned long target);
-struct csv *delete(struct binary_tree *bt, unsigned long target);
+struct csv *search_and_lock(struct binary_tree *bt, unsigned int target);
+struct csv *delete_and_lock(struct binary_tree *bt, unsigned int target);
+int insert(struct binary_tree *bt, unsigned int target, char *field_name);
+struct binary_tree_node *search(struct binary_tree *bt, unsigned int target);
+struct csv *delete(struct binary_tree *bt, unsigned int target);
 void rebalance(struct binary_tree *bt, struct binary_tree_node *ptr);
 struct binary_tree_node *rotate_right(struct binary_tree_node *ptr);
 struct binary_tree_node *rotate_left(struct binary_tree_node *ptr);
@@ -25,18 +25,18 @@ struct binary_tree *initialize_binary_tree()
 	return bt;
 }
 
-unsigned long new_session(struct binary_tree *bt)
+unsigned int new_session(struct binary_tree *bt, char *field_name)
 {
-	unsigned long sid;
+	unsigned int sid;
 	pthread_mutex_lock(&bt->mutex);
 	do {
 		sid = random();
-	} while (insert(bt, sid));
+	} while (insert(bt, sid, field_name));
 	pthread_mutex_unlock(&bt->mutex);
 	return sid;
 }
 
-void append_file(struct binary_tree *bt, char *new_file, unsigned long sid)
+void append_file(struct binary_tree *bt, char *new_file, unsigned int sid)
 {
 	struct file_node *fn;
 	struct csv *table;
@@ -46,14 +46,13 @@ void append_file(struct binary_tree *bt, char *new_file, unsigned long sid)
 	pthread_mutex_unlock(&table->mutex);
 }
 
-char *get_output(struct binary_tree *bt, unsigned long sid)
+char *get_output(struct binary_tree *bt, unsigned int sid)
 {
 	struct csv *table;
-	struct file_node *fn;
 	char *output;
 	table = delete_and_lock(bt, sid);
-	fn = mergesort(table);
-	output = print_csv(fn);
+	mergesort(table);
+	output = print_csv(table);
 	free_csv(table);
 	return output;
 }
@@ -65,7 +64,7 @@ void free_binary_tree(struct binary_tree *bt)
 	free(bt);
 }
 
-int insert(struct binary_tree *bt, unsigned long target)
+int insert(struct binary_tree *bt, unsigned int target, char *field_name)
 {
 	int ret;
 	struct binary_tree_node *ptr, *par;
@@ -83,7 +82,7 @@ int insert(struct binary_tree *bt, unsigned long target)
 	if (ret == 0) {
 		ptr = malloc(sizeof(*ptr));
 		ptr->key = target;
-		ptr->value = initialize_csv();
+		ptr->value = initialize_csv(field_name);
 		ptr->parent = par;
 		ptr->left = NULL;
 		ptr->right = NULL;
@@ -97,7 +96,7 @@ int insert(struct binary_tree *bt, unsigned long target)
 	return ret;
 }
 
-struct csv *search_and_lock(struct binary_tree *bt, unsigned long target)
+struct csv *search_and_lock(struct binary_tree *bt, unsigned int target)
 {
 	struct binary_tree_node *ptr;
 	pthread_mutex_lock(&bt->mutex);
@@ -107,7 +106,7 @@ struct csv *search_and_lock(struct binary_tree *bt, unsigned long target)
 	return ptr->value;
 }
 
-struct csv *delete_and_lock(struct binary_tree *bt, unsigned long target)
+struct csv *delete_and_lock(struct binary_tree *bt, unsigned int target)
 {
 	struct csv *ret;
 	pthread_mutex_lock(&bt->mutex);
@@ -117,7 +116,7 @@ struct csv *delete_and_lock(struct binary_tree *bt, unsigned long target)
 	return ret;
 }
 
-struct binary_tree_node *search(struct binary_tree *bt, unsigned long target)
+struct binary_tree_node *search(struct binary_tree *bt, unsigned int target)
 {
 	struct binary_tree_node *ptr;
 	ptr = bt->root;
@@ -130,7 +129,7 @@ struct binary_tree_node *search(struct binary_tree *bt, unsigned long target)
 	return ptr;
 }
 
-struct csv *delete(struct binary_tree *bt, unsigned long target)
+struct csv *delete(struct binary_tree *bt, unsigned int target)
 {
 	struct binary_tree_node *ptr, *par, *tmp;
 	struct csv *ret;

@@ -39,11 +39,14 @@ char *field_list[] = {
 	"movie_facebook_likes",
 };
 
-struct csv *initialize_csv()
+int get_field_index(char *field_name);
+
+struct csv *initialize_csv(char *field_name)
 {
 	struct csv *table;
 	table = malloc(sizeof(*table));
 	table->front = NULL;
+    table->field_index = get_field_index(field_name);
 	table->total_rows = 0;
 	table->total_length = 0;
 	pthread_mutex_init(&table->mutex, NULL);
@@ -52,7 +55,7 @@ struct csv *initialize_csv()
 
 
 //csvread would take a buffer,a matrix as an argument
-struct file_node *read_csv(char *buffer, struct csv *table, int len)
+struct file_node *read_csv(char *buffer)
 {
 	struct file_node *fn;
 	char ***matrix;
@@ -66,7 +69,7 @@ struct file_node *read_csv(char *buffer, struct csv *table, int len)
 	line = strtok(buffer, "\r\n");
 	//printf("header %s\n", line);
 	if (line == NULL || strcmp(line, header)) {
-		printf("header length %d, line length is %d\n", strlen(header), strlen(line));
+		printf("header length %ld, line length is %ld\n", strlen(header), strlen(line));
 		fputs("invalid header\n", stderr);
 		free(buffer);
 		return NULL;
@@ -106,27 +109,29 @@ void append_csv(struct csv *table, struct file_node *fn, int len)
 {
 	fn->next = table->front;
 	table->front = fn;
-	table->total_len += len;
+	table->total_length += len;
 	table->total_rows += fn->num_rows;
 }
 
-char *print_csv(file_node *ptr)
+char *print_csv(struct csv *table)
 {
 
 	int i, j;
-	char *buffer = malloc(ptr->total_length + 1);
+	char *buffer = malloc(table->total_length + 1);
+    struct file_node *fn;
 	char *ptr;
 	sprintf(buffer, "%s", header);
+    fn = table->front;
 	ptr = buffer + strlen(buffer);
-	for (i = 0; i < ptr->num_rows; i++) {
+	for (i = 0; i < table->total_rows; i++) {
 		for (j = 0; j < NUM_COLS; j++) {
-			if (ptr->matrix[i][j]) {
-				if (index(ptr->matrix[i][j], ',')){
-					sprintf(ptr, "\"%s\"", ptr->matrix[i][j]);
+			if (fn->matrix[i][j]) {
+				if (index(fn->matrix[i][j], ',')){
+					sprintf(ptr, "\"%s\"", fn->matrix[i][j]);
 					ptr += strlen(ptr);
 				}
 				else{
-					sprintf(ptr, ptr->matrix[i][j]);
+					sprintf(ptr, fn->matrix[i][j]);
 					ptr += strlen(ptr);
 				}
 			}		

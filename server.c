@@ -29,11 +29,10 @@ int main(int argc, char **argv)
     struct service_args *sa;
     pthread_t tid;
     port = 0;
-    fprintf(stdout, "Received connections from: ");
     while ((c = getopt(argc, argv, "p:")) != -1) {
         switch (c) {
-        case 'p':
-            port = atoi(optarg);
+            case 'p':
+                port = atoi(optarg);
         }
     }
     if (port == 0) {
@@ -41,7 +40,7 @@ int main(int argc, char **argv)
         return 1;
     }
     if ((sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)) == -1) {
-        fputs("failed to create socket\n", stderr);
+        perror("failed to create socket");
         return 1;
     }
     bzero(&addr, sizeof(addr));
@@ -49,28 +48,25 @@ int main(int argc, char **argv)
     addr.sin_port = htons(port);
     addr.sin_addr.s_addr = INADDR_ANY;
     if (bind(sock, (struct sockaddr *) &addr, sizeof(addr)) == -1) {
-        fprintf(stderr, "failed to bind socket %d to port %d\n", sock, port);
+        perror("failed to bind socket to port");
         return 1;
     }
     if (listen(sock, BACKLOG) == -1) {
-        fprintf(stderr, "failed to listen on socket %d with backlog %d\n", sock, BACKLOG);
+        perror("failed to listen on socket");
         return 1;
     }
     bt = initialize_binary_tree();
-    while (1) {
-        if ((fd = accept(sock, NULL, NULL)) == -1) {
-            fprintf(stderr, "failed to accept connection on socket %d\n", sock);
-            return 1;
-        }
+    while ((fd = accept(sock, NULL, NULL)) != -1) {
         sa = malloc(sizeof(*sa));
         sa->fd = fd;
         sa->bt = bt;
         if (pthread_create(&tid, NULL, &service, sa)) {
-            fputs("failed to create thread\n", stderr);
+            perror("failed to create thread");
             free(sa);
-            return 1;
+            break;
         }
     }
+    perror("failed to accept connection");
     free_binary_tree(bt);
     return 0;
 }
@@ -84,59 +80,61 @@ void *service(void *arg)
     args = (struct service_args *) arg;
     fd = args->fd;
     bt = args->bt;
-    if (read(fd, buffer, HDR_LEN) == -1) {
-	    perror("failed to read header");
-	    free(arg);
-	    return NULL;
+    if (read(fd, buffer, HDR_LEN) != HDR_LEN) {
+        perror("failed to read header");
+        free(arg);
+        return NULL;
     }
+    buffer[HDR_LEN - 1] = '\0';
     if (strncmp(buffer, DUMP_PREFIX, DUMP_PREFIX_LEN) == 0) {
         if (sscanf(buffer, DUMP_FMT, &sid) == 1) {
             file = get_output(bt, sid);
             len = strlen(file);
             sprintf(buffer, LENGTH_FMT, strlen(file));
-            if (write(fd, buffer, HDR_LEN) != -1) {
-		    perror("failed to write output file header");
-	    } else {
-		    for (fptr = file, i = 0; i < len; fptr += BUF_LEN, i += BUF_LEN) {
-			strncpy(buffer, fptr, BUF_LEN);
-			if (write(fd, buffer, BUF_LEN) == -1) {
-				perror("failed to write output file");
-				break;
-			}
-		    }
-	    }
+            if (write(fd, buffer, HDR_LEN) != HDR_LEN) {
+                perror("failed to write output file header");
+            } else {
+                for (fptr = file, i = 0; i < len; fptr += BUF_LEN, i += BUF_LEN) {
+                    strncpy(buffer, fptr, BUF_LEN);
+                    if (write(fd, buffer, BUF_LEN) != BUF_LEN) {
+                        perror("failed to write output file");
+                        break;
+                    }
+                }
+            }
             free(file);
         }
     } else if (strncmp(buffer, NEW_SESSION_PREFIX, NEW_SESSION_PREFIX_LEN) == 0) {
         if (sscanf(buffer, NEW_SESSION_FMT, field_name) == 1) {   
-	    sid = new_session(bt);
+            sid = new_session(bt, field_name);
             sprintf(buffer, SESSION_ID_FMT, sid);
-            if (write(fd, buffer, HDR_LEN) == -1) {
-		    perror("failed to create session");
-	    }
+            if (write(fd, buffer, HDR_LEN) != HDR_LEN) {
+                perror("failed to create session");
+            }
         }
     } else if (sscanf(buffer, SORT_FMT, &sid, &len) == 2) {
         read(fd, buffer, PAD_LEN);
         file = malloc((len + 1) * sizeof(*file));
-	fptr = file;
-	i = 0;
+        fptr = file;
+        i = 0;
         for (fptr = file, i = 0; i <= len - BUF_LEN; fptr += BUF_LEN, i += BUF_LEN) {
-            if (read(fd, buffer, BUF_LEN) == -1) {
-		    perror("failed to read input file");
-		    break;
-	    }
+            if (read(fd, buffer, BUF_LEN) != BUF_LEN) {
+                perror("failed to read input file");
+                break;
+            }
             strncpy(fptr, buffer, BUF_LEN);
         }
-        if (read(fd, buffer, len - i) == -1) {
-		perror("failed to read input file");
-	} else {
-		strncpy(fptr, buffer, len - i);
-		file[len] = '\0';
-		append_file(bt, file, sid);
-		strcpy(buffer, FILE_DONE_FMT);
-		write(fd, buffer, BUF_LEN);
-	}
-	free(file);
+        if (read(fd, buffer, len - i) != len - i) {
+            perror("failed to read input file");
+        } else {
+            strncpy(fptr, buffer, len - i);
+            file[len] = '\0';
+            append_file(bt, file, sid);
+            strcpy(buffer, FILE_DONE_FMT);
+            if (write(fd, buffer, BUF_LEN) != BUF_LEN)
+                perror("failed to send done message");
+        }
+        free(file);
     }
     close(fd);
     free(arg);

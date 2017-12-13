@@ -8,96 +8,82 @@
 #include "csv.h"
 #include "mergesort.h"
 
-#define BOUNDARY 2048
-
 int compare(char *a, char *b);
 int lexcmp(char *a, int alen, char *b, int blen);
 int charcmp(char a, char b);
 int strbegin(char *str);
 int strend(char *str);
-void merge(int low, int mid, int high, int field_index, char ***matrix);
 
-/*
-void serial_mergesort(int low, int high, int field, char ***matrix)
+void mergesort(struct csv *table)
 {
-    //printf("low is %d, mid is %d, high is %d\n", low, (low + high)/2, high);
-    if ((high - low) <= 1){
-        return;
+	int *end;
+	int field_index, num_rows, low, middle, high, i, j;
+	char ***a, ***b, ***tmp;
+    struct file_node *ptr, *nxt;
+	int ind;
+    num_rows = table->total_rows;
+    field_index = table->field_index;
+    a = malloc(num_rows * sizeof(*a));
+    for (ind = 0, ptr = table->front; ptr; ind += ptr->num_rows, ptr = nxt) {
+        memcpy(a + ind, ptr->matrix, ptr->num_rows * sizeof(*a));
+        nxt = ptr->next;
+        free(ptr->matrix);
+        free(ptr);
     }
-    int mid = (high + low) / 2;
-    serial_mergesort(low, mid, field, matrix);
-    serial_mergesort(mid, high, field, matrix);
-
-    merge(low, mid, high, field, matrix);
+	end = malloc(num_rows * sizeof(*end));
+	j = 0;
+	for (i = 1; i < num_rows; i++) {
+		if (compare(a[i - 1][field_index], a[i][field_index]) > 0) {
+			end[j] = i;
+			j = i;
+		}
+	}
+	end[j] = num_rows;
+	b = malloc(num_rows * sizeof(*b));
+	ind = 0;
+	while (end[0] != num_rows) {
+		low = ind;
+		middle = end[ind];
+		high = end[middle];
+		i = low;
+		j = middle;
+		while (i < middle && j < high) {
+			if (compare(a[i][field_index], a[j][field_index]) <= 0) {
+				b[ind] = a[i];
+				ind++;
+				i++;
+			} else {
+				b[ind] = a[j];
+				ind++;
+				j++;
+			}
+		}
+		while (i < middle) {
+			b[ind] = a[i];
+			ind++;
+			i++;
+		}
+		while (j < high) {
+			b[ind] = a[j];
+			ind++;
+			j++;
+		}
+		end[low] = high;
+		if (high == num_rows || end[high] == num_rows) {
+			for (; ind < num_rows; ind++)
+				b[ind] = a[ind];
+			ind = 0;
+			tmp = a;
+			a = b;
+			b = tmp;
+		}
+	}
+    ptr = malloc(sizeof(*ptr));
+    ptr->matrix = a;
+    ptr->num_rows = num_rows;
+    ptr->next = NULL;
+    table->front = ptr;
 }
-
-*/
-
-void mergesort(int low, int high, int field, char ***matrix)
-{
-    int i;
-    int s_index[high -low];
-    int p_index = low;
-    s_index[0] = low + 1; 
-    i = low + 1;
-    while (i < high){
-        if(compare(matrix[i][field], matrix[i-1][field]) < 0){
-            s_index[p_index - low] = i;
-            p_index = i;
-
-        }
-        i++;
-    }
-    s_index[p_index - low] = high;
-
-    while (s_index[0] != high){
-        i = low;
-        while (i < high && s_index[i - low] < high){
-            merge(i, s_index[i-low], s_index[s_index[i - low]-low], field, matrix);
-            s_index[i-low] = s_index[s_index[i-low] - low];
-            i = s_index[i - low]; 
-        }
-    }		
-
-}
-
-
-
-
-
-void merge(int low, int mid, int high, int field_index, char ***matrix)
-{
-    //printf("**********low is %d, mid is %d, high is %d**********\n", low, mid, high);
-    int i, j;
-    int counter;
-    for (i = low, j = mid, counter = low; (i < mid) && (j < high);){
-        if (compare(matrix[i][field_index], matrix[j][field_index]) <= 0){
-            smatrix[counter++] = matrix[i++];
-            //printf("1******%s at %d comes before %s at %d, new index is %d\n", smatrix[counter -1][field_index], i-1, matrix[j][field_index], j, counter -1);
-        }
-        else{
-            smatrix[counter++] = matrix[j++];
-            //printf("2*****%s at %d comes before %s at %d, new index is %d\n", smatrix[counter - 1][field_index], j-1, matrix[i][field_index], i,  counter -1);
-        }
-
-    }
-    while(i < mid){
-        smatrix[counter++] = matrix[i++];
-        //printf("3******follows by %s at %d, new index is %d\n********", smatrix[counter - 1][field_index], i-1, counter -1);
-    }
-
-    while(j < high){
-        smatrix[counter++] = matrix[j++];
-        //printf("4*****follows by %s at %d, new index is%d\n*******", smatrix[counter - 1][field_index], j-1, counter -1);
-    }
-    for(i = low; i < high; i++){
-        matrix[i] = smatrix[i];
-    }
-
-} 
-
-
-
 
 int compare(char *a, char *b)
 {
