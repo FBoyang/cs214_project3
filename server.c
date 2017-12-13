@@ -8,11 +8,12 @@
 #include <pthread.h>
 #include "buf_store.h"
 #include "readbuf.h"
-
+#include "server.h"
 const int BUF_LEN = 256;
 const int HDR_LEN = 128;
 const int PAD_LEN = 128;
 const int BACKLOG = 16;
+pthread_mutex_t lock=PTHREAD_MUTEX_INITIALIZER;
 
 struct service_args {
     int fd;
@@ -58,11 +59,13 @@ int main(int argc, char **argv)
     }
     ba = init_array();
     while (1) {
+	printf("waiting for connections\n\n\n");
+	pthread_mutex_init(&id_locker, NULL); 
         if ((fd = accept(sock, NULL, NULL)) == -1) {
             fprintf(stderr, "failed to accept connection on socket %d\n", sock);
             return 1;
         }
-        sa = malloc(sizeof(*sa));
+        sa = (struct service_args *)malloc(sizeof(struct service_args));
         sa->fd = fd;
         sa->ba = &ba;
         if (pthread_create(&tid, NULL, &service, sa)) {
@@ -70,6 +73,8 @@ int main(int argc, char **argv)
             free(sa);
             return 1;
         }
+	pthread_mutex_destroy(&id_locker);
+
     }
     return 0;
 }
@@ -85,20 +90,35 @@ void *service(void *arg)
     ba = args->ba;
     read(fd, buffer, HDR_LEN);
     if (strncmp(buffer, "QUIT_SERVER", 11) == 0) {
+	//check the validity of quit_server information
         if (sscanf(buffer, "QUIT_SERVER-_-%d", &sid) == 1 && sid < (*ba)->id_size && (*ba)[sid].isFree == 0) {
-	    printf("quit server \n");
-	    printf("session id is %d, num row is %d, word length is %d\n", sid,(*ba[sid]).table -> num_rows, (*ba[sid]).table -> t_length);
+	//store output into file 
             file = print_csv(*ba[sid]);
-	    if (file = NULL){
+	    free_bufarg(&(*ba[sid])); 
+	    if (file == NULL){
 		return NULL;
 	    }
             len = strlen(file);
-	    //printf("file is %s\n", file);
-	    //printf("file length is %d\n", len);
+	    bzero(buffer, HDR_LEN);
             sprintf(buffer, "%ld", strlen(file));
             write(fd, buffer, HDR_LEN);
-	    write(fd, file, strlen(file));
-	     
+
+	    int size=0;
+	    int len=strlen(file);
+        //By Chijun SHa end
+	//send the sorted file to client
+    	    do{
+ 		size+=write(fd, file+size, len-size);
+            }while(size<len);
+
+
+
+            char rbuffer[256];
+            int n = read(fd, rbuffer, sizeof(char)*4);
+            if(n < 0){
+               perror("read");
+            }
+	// printf("\n\n\n\nfsadfdasfdfsdadone hrererhg%s\n\n\n\n\n",rbuffer);     
 /*
             for (fptr = file, i = 0; i < len - BUF_LEN; fptr += a, i += a) {
                 strncpy(buffer, fptr, BUF_LEN);
@@ -112,16 +132,20 @@ void *service(void *arg)
     } else if (strncmp(buffer, "Get_Id", 6) == 0) {
         if (sscanf(buffer, "Get_Id-_-%s", field_name) == 1) {   
 	    sid = get_id(field_name, ba);
-            sprintf(buffer, "1%d", sid);
-	    
-	    printf("can get id\n");
+	    if(sid == -1)
+		sprintf(buffer, "0");
+   	    else
+            	sprintf(buffer, "1%d", sid);
+	    printf("can get id %d\n", sid);
             write(fd, buffer, HDR_LEN);
         }
     } else if (sscanf(buffer, "%d-_-%d", &sid, &len) == 2) {
+        //get session id, get length of the file
 	printf("read data\n");
-        read(fd, buffer, PAD_LEN);
-        file = malloc((len + 1) * sizeof(*file));
+        //read(fd, buffer, PAD_LEN);
+        file = malloc((len + 1) * sizeof(char));
 	int a = 0;
+
         for (fptr = file, i = 0; i <= len - BUF_LEN; fptr += a, i += a) {
             a = read(fd, buffer, BUF_LEN);
             strncpy(fptr, buffer, BUF_LEN);
@@ -129,9 +153,12 @@ void *service(void *arg)
 	printf("len is %d\n", len);
         read(fd, buffer, len - i);
         strncpy(fptr, buffer, len - i);
-        file[len - 1] = 0;
-	printf("file is %.*s\n", 10,file);
+        file[len - 1] = '\0';
+	//printf("\n\nfile is %s\n",file);
+        
+        pthread_mutex_lock(&lock);
         append_file(file, len, sid, *ba);
+        pthread_mutex_unlock(&lock);
 	a = write(fd, "done", 4);
 	if ( a < 0){
 		perror("write");

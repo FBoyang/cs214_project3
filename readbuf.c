@@ -66,7 +66,7 @@ void readbuf(char *buffer, struct csv *table, int len)
 	line = strtok(buffer, "\r\n");
 	//printf("header %s\n", line);
 	if (line == NULL || strcmp(line, header)) {
-		printf("header length %d, line length is %d\n", strlen(header), strlen(line));
+		fflush(stdout);
 		fputs("invalid header\n", stderr);
 		free(buffer);
 		return;
@@ -115,7 +115,7 @@ void append_file(char *file, int len, int sid, struct bufarg *ba)
 
 void append_csv(struct csv *table, char ***new_entries, int num_new, int len)
 {
-	pthread_mutex_lock(&table->mutex);
+	//pthread_mutex_lock(&table->mutex);
 	table ->t_length += len;
 	if (table->num_rows + num_new > table->row_capacity) {
 		table->row_capacity = 2 * (table->num_rows + num_new);
@@ -123,7 +123,7 @@ void append_csv(struct csv *table, char ***new_entries, int num_new, int len)
 	}
 	memcpy(table->matrix + table->num_rows, new_entries, num_new * sizeof(*table->matrix));
 	table->num_rows += num_new;
-	pthread_mutex_unlock(&table->mutex);
+	//pthread_mutex_unlock(&table->mutex);
 }
 
 char *print_csv(struct bufarg buf)
@@ -139,7 +139,7 @@ char *print_csv(struct bufarg buf)
 	struct csv *table = buf.table;
 	
 	int length = buf.table -> t_length;
-	printf("length after sorting is %d\n", length);
+	//printf("length after sorting is %d\n", length);
 	char *buffer = malloc(length+1);
 	char *ptr;
 	sprintf(buffer, "%s\r\n", header);

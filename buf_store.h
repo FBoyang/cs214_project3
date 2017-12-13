@@ -8,7 +8,6 @@ struct sarg{
 
 struct bufarg{
 	struct csv *table;
-	int sess_id;
 	int id_size;
 	int isFree;
 	int field_num;
@@ -16,6 +15,7 @@ struct bufarg{
 
 #include "readbuf.h"
 void enlarge(struct bufarg**);
+void free_bufarg(struct bufarg*);
 struct bufarg* init_array();
 int get_id(char *, struct bufarg**);
 void free_id(struct bufarg*, int);
