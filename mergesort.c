@@ -16,11 +16,11 @@ int strend(char *str);
 
 void mergesort(struct csv *table)
 {
-	int *end;
-	int field_index, num_rows, low, middle, high, i, j;
-	char ***a, ***b, ***tmp;
+    int *end;
+    int field_index, num_rows, low, middle, high, i, j;
+    char ***a, ***b, ***tmp;
     struct file_node *ptr, *nxt;
-	int ind;
+    int ind;
     num_rows = table->total_rows;
     field_index = table->field_index;
     a = malloc(num_rows * sizeof(*a));
@@ -30,54 +30,54 @@ void mergesort(struct csv *table)
         free(ptr->matrix);
         free(ptr);
     }
-	end = malloc(num_rows * sizeof(*end));
-	j = 0;
-	for (i = 1; i < num_rows; i++) {
-		if (compare(a[i - 1][field_index], a[i][field_index]) > 0) {
-			end[j] = i;
-			j = i;
-		}
-	}
-	end[j] = num_rows;
-	b = malloc(num_rows * sizeof(*b));
-	ind = 0;
-	while (end[0] != num_rows) {
-		low = ind;
-		middle = end[ind];
-		high = end[middle];
-		i = low;
-		j = middle;
-		while (i < middle && j < high) {
-			if (compare(a[i][field_index], a[j][field_index]) <= 0) {
-				b[ind] = a[i];
-				ind++;
-				i++;
-			} else {
-				b[ind] = a[j];
-				ind++;
-				j++;
-			}
-		}
-		while (i < middle) {
-			b[ind] = a[i];
-			ind++;
-			i++;
-		}
-		while (j < high) {
-			b[ind] = a[j];
-			ind++;
-			j++;
-		}
-		end[low] = high;
-		if (high == num_rows || end[high] == num_rows) {
-			for (; ind < num_rows; ind++)
-				b[ind] = a[ind];
-			ind = 0;
-			tmp = a;
-			a = b;
-			b = tmp;
-		}
-	}
+    end = malloc(num_rows * sizeof(*end));
+    j = 0;
+    for (i = 1; i < num_rows; i++) {
+        if (compare(a[i - 1][field_index], a[i][field_index]) > 0) {
+            end[j] = i;
+            j = i;
+        }
+    }
+    end[j] = num_rows;
+    b = malloc(num_rows * sizeof(*b));
+    ind = 0;
+    while (end[0] != num_rows) {
+        low = ind;
+        middle = end[ind];
+        high = end[middle];
+        i = low;
+        j = middle;
+        while (i < middle && j < high) {
+            if (compare(a[i][field_index], a[j][field_index]) <= 0) {
+                b[ind] = a[i];
+                ind++;
+                i++;
+            } else {
+                b[ind] = a[j];
+                ind++;
+                j++;
+            }
+        }
+        while (i < middle) {
+            b[ind] = a[i];
+            ind++;
+            i++;
+        }
+        while (j < high) {
+            b[ind] = a[j];
+            ind++;
+            j++;
+        }
+        end[low] = high;
+        if (high == num_rows || end[high] == num_rows) {
+            for (; ind < num_rows; ind++)
+                b[ind] = a[ind];
+            ind = 0;
+            tmp = a;
+            a = b;
+            b = tmp;
+        }
+    }
     ptr = malloc(sizeof(*ptr));
     ptr->matrix = a;
     ptr->num_rows = num_rows;

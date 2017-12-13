@@ -5,17 +5,16 @@
 #include "mergesort.h"
 
 struct binary_tree_node {
-	unsigned int key;
-	struct csv *value;
-	struct binary_tree_node *parent;
-	struct binary_tree_node *left;
-	struct binary_tree_node *right;
-	unsigned long weight;
+    unsigned int key;
+    struct csv *value;
+    struct binary_tree_node *left;
+    struct binary_tree_node *right;
+    unsigned long weight;
 };
 
 struct binary_tree {
-	struct binary_tree_node *root;
-	pthread_mutex_t mutex;
+    struct binary_tree_node *root;
+    pthread_mutex_t mutex;
 };
 
 struct binary_tree *initialize_binary_tree();

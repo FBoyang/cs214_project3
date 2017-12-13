@@ -2,17 +2,17 @@
 #define _CSV_H
 
 struct file_node {
-	char ***matrix;
-	int num_rows;
-	struct file_node *next;
+    char ***matrix;
+    int num_rows;
+    struct file_node *next;
 };
 
 struct csv {
-	struct file_node *front;
+    struct file_node *front;
     int field_index;
-	int total_rows;
-	int total_length;
-	pthread_mutex_t mutex;
+    int total_rows;
+    int total_length;
+    pthread_mutex_t mutex;
 };
 
 struct csv* initialize_csv(char *field_name);
