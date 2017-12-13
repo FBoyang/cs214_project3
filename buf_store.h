@@ -18,5 +18,5 @@ void enlarge(struct bufarg**);
 void free_bufarg(struct bufarg*);
 struct bufarg* init_array();
 int get_id(char *, struct bufarg**);
-void free_id(struct bufarg*, int);
+void free_id(struct bufarg**, int);
 #endif 

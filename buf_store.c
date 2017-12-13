@@ -45,19 +45,20 @@ int get_id(char *field_name, struct bufarg **bufarray)
 	enlarge(bufarray);
 	(*bufarray)[i].isFree = 0;
 	(*bufarray)[i].table = initialize_csv();
+	printf("initialize table num %d\n", i);
 	(*bufarray)[i].field_num = get_field_index(field_name);
 	pthread_mutex_unlock(&id_locker);
 	printf("get id: %d\n", i);
 	return i;
 }
 
-void free_id(struct bufarg *bufarray, int i)
+void free_id(struct bufarg **bufarray, int i)
 {
 	struct csv *table;
-	table = bufarray[i].table;
-	bufarray[i].table = NULL;
+	table = (*bufarray)[i].table;
+	(*bufarray)[i].table = NULL;
 	free_csv(table);
-	bufarray[i].isFree = 1;
+	(*bufarray)[i].isFree = 1;
 }
 
 void free_bufarg(struct bufarg *fi_arg)

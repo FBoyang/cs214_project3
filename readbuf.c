@@ -66,7 +66,7 @@ void readbuf(char *buffer, struct csv *table, int len)
 	line = strtok(buffer, "\r\n");
 	//printf("header %s\n", line);
 	if (line == NULL || strcmp(line, header)) {
-		fflush(stdout);
+		printf("line is %s\n", line);
 		fputs("invalid header\n", stderr);
 		free(buffer);
 		return;
@@ -110,6 +110,7 @@ void readbuf(char *buffer, struct csv *table, int len)
 
 void append_file(char *file, int len, int sid, struct bufarg *ba)
 {
+	printf("append file to sid %d\n", sid);
 	readbuf(file, ba[sid].table, len);
 }
 
