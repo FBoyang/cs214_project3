@@ -146,7 +146,7 @@ char *print_csv(struct bufNode *buf)
 	
 	int length = buf -> table -> t_length;
 	//printf("length after sorting is %d\n", length);
-	char *buffer = malloc(length+1);
+	char *buffer = malloc(strlen(header) + length + 3);
 	char *ptr;
 	sprintf(buffer, "%s\r\n", header);
 	ptr = buffer + strlen(buffer);
