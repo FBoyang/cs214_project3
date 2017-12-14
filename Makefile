@@ -1,16 +1,21 @@
 CC = gcc
-sources = buf_store.c mergesort.c readbuf.c server.c 
-headers = buf_store.h mergesort.h readbuf.h 
+server_sources = buf_store.c mergesort.c readbuf.c server.c 
+server_headers = buf_store.h mergesort.h readbuf.h 
+client_sources = sorter_client.c
+client_headers = sorter_client.h
 
 .PHONY: all
-all: server client
+all: server client sorter.tar
 
-server: $(sources) $(headers)
-	gcc -pthread -g -lm -Wall -o server $(sources)
+server: $(server_sources) $(server_headers)
+	gcc -pthread -g -lm -Wall -o server $(server_sources)
 
-client: sorter_client.c sorter_client.h
-	gcc -pthread -g -lm -Wall -o client sorter_client.c
+client: $(client_sources) $(client_headers)
+	gcc -pthread -g -lm -Wall -o client $(client_sources)
+
+sorter.tar: $(server_sources) $(server_headers) $(client_sources) $(client_headers) Makefile readme.pdf
+	tar cvf sorter.tar $(server_sources) $(server_headers) $(client_sources) $(client_headers) Makefile readme.pdf
 
 .PHONY: clean
 clean:
-	rm -vf client server 
+	rm -vf client server sorter.tar
