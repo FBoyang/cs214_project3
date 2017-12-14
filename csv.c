@@ -48,13 +48,12 @@ struct csv *initialize_csv(char *field_name)
     table->front = NULL;
     table->field_index = get_field_index(field_name);
     table->total_rows = 0;
-    table->total_length = 0;
+    table->total_length = strlen(header) + 2;
     pthread_mutex_init(&table->mutex, NULL);
     return table;
 }
 
 
-//csvread would take a buffer,a matrix as an argument
 struct file_node *read_csv(char *buffer)
 {
     struct file_node *fn;
@@ -65,11 +64,8 @@ struct file_node *read_csv(char *buffer)
     char *str;
     char *strex;
     int i;
-    //printf("first line is %.*s\n", 10, buffer);
     line = strtok(buffer, "\r\n");
-    //printf("header %s\n", line);
     if (line == NULL || strcmp(line, header)) {
-        printf("header length %ld, line length is %ld\n", strlen(header), strlen(line));
         fputs("invalid header\n", stderr);
         free(buffer);
         return NULL;
@@ -109,7 +105,7 @@ void append_csv(struct csv *table, struct file_node *fn, int len)
 {
     fn->next = table->front;
     table->front = fn;
-    table->total_length += len;
+    table->total_length += len - strlen(header) - 2;
     table->total_rows += fn->num_rows;
 }
 
