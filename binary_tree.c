@@ -41,24 +41,29 @@ void append_file(struct binary_tree *bt, char *new_file, unsigned int sid)
     struct file_node *fn;
     struct csv *table;
     fn = read_csv(new_file);
-    table = search_and_lock(bt, sid);
-    append_csv(table, fn, strlen(new_file));
-    pthread_mutex_unlock(&table->mutex);
+    if ((table = search_and_lock(bt, sid))) {
+        append_csv(table, fn, strlen(new_file));
+        pthread_mutex_unlock(&table->mutex);
+    }
 }
 
 char *get_output(struct binary_tree *bt, unsigned int sid)
 {
     struct csv *table;
     char *output;
-    table = delete_and_lock(bt, sid);
-    mergesort(table);
-    output = print_csv(table);
-    free_csv(table);
+    if ((table = delete_and_lock(bt, sid))) {
+        mergesort(table);
+        output = print_csv(table);
+        free_csv(table);
+    } else {
+        output = NULL;
+    }
     return output;
 }
 
 void free_binary_tree(struct binary_tree *bt)
 {
+    pthread_mutex_lock(&bt->mutex);
     recursive_free_node(bt->root);
     pthread_mutex_destroy(&bt->mutex);
     free(bt);
