@@ -20,6 +20,7 @@ pthread_mutex_t lock=PTHREAD_MUTEX_INITIALIZER;
 struct service_args {
     int fd;
     struct bufNode *ba;
+    struct LinkList *plist;
 };
 
 void *service(void *arg);
@@ -69,12 +70,14 @@ int main(int argc, char **argv)
         sa = (struct service_args *)malloc(sizeof(struct service_args));
         sa->fd = fd;
         sa->ba = ba;
+	//session id pidlist
         if (pthread_create(&tid, NULL, &service, sa)) {
             fputs("failed to create thread\n", stderr);
             free(sa);
             return 1;
         }
-
+	//
+	//pthread_detach(tid);
     }
     return 0;
 }
@@ -95,9 +98,12 @@ void *service(void *arg)
 	//check the validity of quit_server information
         if (sscanf(buffer, "QUIT_SERVER-_-%d", &sid) == 1) {
 	//store output into file
-	    tmp_node = search(ba, sid); 
+	    tmp_node = search(ba, sid);
+
 	    if(tmp_node == NULL)
 		    return NULL;
+	    while(tmp_node -> append_num !=0)
+		    printf("append num is %d\n", tmp_node -> append_num);
             file = print_csv(tmp_node);
 	    delete(ba, sid); 
 	    if (file == NULL){
@@ -123,16 +129,9 @@ void *service(void *arg)
             if(n < 0){
                perror("read");
             }
-	// printf("\n\n\n\nfsadfdasfdfsdadone hrererhg%s\n\n\n\n\n",rbuffer);     
-/*
-            for (fptr = file, i = 0; i < len - BUF_LEN; fptr += a, i += a) {
-                strncpy(buffer, fptr, BUF_LEN);
-		printf("current buffer is %s\n", buffer);	
-                a =  write(fd, buffer, BUF_LEN);
-            }
-
-*/	    
+    
             free(file);
+	    
         }
     } else if (strncmp(buffer, "Get_Id", 6) == 0) {
         if (sscanf(buffer, "Get_Id-_-%s", field_name) == 1) {   
@@ -150,9 +149,14 @@ void *service(void *arg)
    	    else
             	sprintf(buffer, "1%d", sid);
 	    printf("can get id %d\n", sid);
+	    pthread_mutex_init(&file_locker, NULL);
             write(fd, buffer, HDR_LEN);
         }
     } else if (sscanf(buffer, "%d-_-%d", &sid, &len) == 2) {
+	    struct bufNode *ptr = search(ba, sid);
+	    pthread_mutex_lock(&file_locker);
+	    ptr -> append_num ++;
+	    pthread_mutex_unlock(&file_locker);
         //get session id, get length of the file
 	printf("read data\n");
         //read(fd, buffer, PAD_LEN);
@@ -174,9 +178,11 @@ void *service(void *arg)
         pthread_mutex_unlock(&lock);
 	a = write(fd, "done", 4);
 	if ( a < 0){
-		perror("write");
+	    free(ptr);	
+	    perror("write");
 	}	
 	//printf("row num is %d\n", *ba[sid] -> table -> num_rows);
+	// pid to pid list
     }
     close(fd);
     free(arg);

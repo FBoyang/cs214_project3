@@ -1,6 +1,6 @@
 #ifndef _BUF_STORE_H
 #define _BUF_STORE_H
-
+#include <pthread.h>
 struct bufarg{
 	struct csv *table;
 	int id_size;
@@ -15,6 +15,7 @@ struct bufNode{
 	int field_num;
 	int sess_id;
 	pthread_mutex_t id_locker;
+	int append_num;
 	struct bufNode *next;
 };
 

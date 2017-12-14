@@ -77,8 +77,12 @@ void CallServer(FILE *fptr,char*node){// with finish signal
         read(sockfd, buffer, len - i);
         strncpy(fptr, buffer, len - i);
         file[len]='\0';
-
-        fwrite(file, 1, len, fe);
+	int sum = 0;
+	a = 0;
+	while(sum < len){
+        a = fwrite(file, 1, len, fe);
+	sum += a;
+	}
         a = write(sockfd, "done", 4);
 	if ( a < 0){
 		perror("write");

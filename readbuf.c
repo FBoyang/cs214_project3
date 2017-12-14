@@ -4,8 +4,8 @@
 #include <string.h>
 #include "readbuf.h"
 #include "mergesort.h"
+#include "server.h"
 #define NUM_COLS 28
-pthread_mutex_t file_locker = PTHREAD_MUTEX_INITIALIZER;
 char *header = "color,director_name,num_critic_for_reviews,duration,director_facebook_likes,actor_3_facebook_likes,actor_2_name,actor_1_facebook_likes,gross,genres,actor_1_name,movie_title,num_voted_users,cast_total_facebook_likes,actor_3_name,facenumber_in_poster,plot_keywords,movie_imdb_link,num_user_for_reviews,language,country,content_rating,budget,title_year,actor_2_facebook_likes,imdb_score,aspect_ratio,movie_facebook_likes";
 
 char *field_list[NUM_COLS] = {
@@ -112,9 +112,10 @@ void readbuf(char *buffer, struct csv *table, int len)
 void append_file(char *file, int len, int sid, struct bufNode *ba)
 {
 	
-	pthread_mutex_lock(&file_locker);
 	struct bufNode *tmp = search(ba, sid);
 	readbuf(file, tmp->table, len);
+	pthread_mutex_lock(&file_locker);
+	tmp -> append_num --;
 	pthread_mutex_unlock(&file_locker);
 }
 

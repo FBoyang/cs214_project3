@@ -22,6 +22,7 @@ struct bufNode *init_node()
 	pthread_mutex_init(&(NNode -> id_locker), NULL);
 	NNode -> next = NULL;
 	NNode -> sess_id = -1;
+	NNode -> append_num = 0;
 	return NNode;
 }
 

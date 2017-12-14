@@ -1,5 +1,6 @@
 #ifndef _CSV_H
 #define _CSV_H
+#include <pthread.h>
 #include "buf_store.h"
 struct csv {
 	char ***matrix;
