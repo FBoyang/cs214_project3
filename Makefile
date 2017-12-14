@@ -1,6 +1,6 @@
 CC = gcc
 server_sources = buf_store.c mergesort.c readbuf.c server.c 
-server_headers = buf_store.h mergesort.h readbuf.h 
+server_headers = buf_store.h mergesort.h readbuf.h server.h
 client_sources = sorter_client.c
 client_headers = sorter_client.h
 
