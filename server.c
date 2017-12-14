@@ -29,6 +29,7 @@ int main(int argc, char **argv)
 {
     int c, port, sock, fd;
     struct sockaddr_in addr;
+    socklen_t len;
     struct bufNode *ba;
     struct service_args *sa;
     pthread_t tid;
@@ -61,12 +62,14 @@ int main(int argc, char **argv)
         return 1;
     }
     ba = init_node();
+    len = sizeof(addr);
     while (1) {
 	printf("waiting for connections\n\n\n");
-        if ((fd = accept(sock, NULL, NULL)) == -1) {
+        if ((fd = accept(sock, (struct sockaddr *) &addr, &len)) == -1) {
             fprintf(stderr, "failed to accept connection on socket %d\n", sock);
             return 1;
         }
+        fprintf(stdout, "%s,", inet_ntoa(addr.sin_addr));
         sa = (struct service_args *)malloc(sizeof(struct service_args));
         sa->fd = fd;
         sa->ba = ba;
