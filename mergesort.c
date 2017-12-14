@@ -40,8 +40,6 @@ void mergesort(int low, int high, int field, char ***matrix, char ***smatrix)
     int p_index = low;
     s_index[0] = low + 1; 
     i = low + 1;
-    if (high - low > 0)
-        printf("matrix0][0] is %s\n", matrix[0][10]);
     while (i < high){
         if(compare(matrix[i][field], matrix[i-1][field]) < 0){
             s_index[p_index - low] = i;
