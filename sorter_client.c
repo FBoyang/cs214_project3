@@ -188,7 +188,7 @@ void* FindDir(char * dirtory){
             FindDir(getph);
         }
         //csv file
-        if ( strcmp((st->d_name+(strlen(st->d_name)-4)), ".csv")==0 ) {
+        if (strlen(st->d_name) >= 4 && strncmp(st->d_name, "AllFiles", 8) && strcmp((st->d_name+(strlen(st->d_name)-4)), ".csv")==0 ) {
             char * getph=(char *) malloc((strlen(path)+1)*sizeof(char));
             getph[strlen(path)]='\0';
             strcpy(getph, path);
