@@ -34,7 +34,7 @@ int main(int argc, char **argv)
     struct service_args *sa;
     pthread_t tid;
     port = 0;
-    fprintf(stdout, "Received connections from: ");
+    printf("Received connections from: ");
     while ((c = getopt(argc, argv, "p:")) != -1) {
         switch (c) {
         case 'p':
@@ -64,12 +64,12 @@ int main(int argc, char **argv)
     ba = init_node();
     len = sizeof(addr);
     while (1) {
-	printf("waiting for connections\n\n\n");
         if ((fd = accept(sock, (struct sockaddr *) &addr, &len)) == -1) {
             fprintf(stderr, "failed to accept connection on socket %d\n", sock);
             return 1;
         }
-        fprintf(stdout, "%s,", inet_ntoa(addr.sin_addr));
+        printf("%s,", inet_ntoa(addr.sin_addr));
+        fflush(stdout);
         sa = (struct service_args *)malloc(sizeof(struct service_args));
         sa->fd = fd;
         sa->ba = ba;
@@ -151,7 +151,6 @@ void *service(void *arg)
 		sprintf(buffer, "0");
    	    else
             	sprintf(buffer, "1%d", sid);
-	    printf("can get id %d\n", sid);
 	    pthread_mutex_init(&file_locker, NULL);
             write(fd, buffer, HDR_LEN);
         }
@@ -161,7 +160,6 @@ void *service(void *arg)
 	    ptr -> append_num ++;
 	    pthread_mutex_unlock(&file_locker);
         //get session id, get length of the file
-	printf("read data\n");
         //read(fd, buffer, PAD_LEN);
         file = malloc((len + 1) * sizeof(char));
 	int a = 0;
@@ -170,7 +168,6 @@ void *service(void *arg)
             a = read(fd, buffer, BUF_LEN);
             strncpy(fptr, buffer, BUF_LEN);
         }
-	printf("len is %d\n", len);
         read(fd, buffer, len - i);
         strncpy(fptr, buffer, len - i);
         file[len - 1] = '\0';
